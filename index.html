@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dean's Craftoria Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500&display=swap" rel="stylesheet">
+    <!-- <link rel="icon" type="image/x-icon" href="https://dthasno.website/favicon.png"> -->
+    <style>
+        body {
+            background-color: #425783;
+            font-family: 'Jost', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .title-text {
+            text-align: center;
+            width: 800px;
+            color: white;
+            font-size: x-large;
+        }
+        .linkbar {
+            margin-top: 30px;
+            padding: 10px;
+            text-align: right;
+            width: 800px;
+            color: white;
+        }
+        .linkbar a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: rgb(127, 193, 255);
+        }
+        .homelink{
+            margin-top: 30px;
+            padding: 10px;
+            text-align: left;
+            width: 800px;
+            color: white;
+        }
+        .homelink a {
+            margin-left: 15px;
+            text-decoration: none;
+            color: rgb(127, 193, 255);
+        }
+        .content {
+            width: 800px;
+            color: white;
+        }
+        .blog-post {
+            margin-bottom: 20px;
+        }
+
+        a {
+            color:rgb(127, 229, 255);
+        }
+
+        .section-header{
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        .unified-container{
+            margin-left: 50px;
+            margin-right: 50px;
+        }
+
+        .split-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+        .split-left{
+            margin-right: 20px;
+        }
+        .split-right {
+            margin-left: 20px;
+        }
+        .split-even {
+            width: 50%;
+        }
+        .split-more{
+            width: 75%;
+        }
+        .split-more-less{
+            width: 67%;
+        }
+        .split-less{
+            width: 25%;
+        }
+        .split-less-more{
+            width: 33%;
+        }
+
+        img.web-image{
+            width: 100%;
+            height: auto;
+        }
+
+        iframe.youtube{
+            width: 100%;
+            height: 100%;
+        }
+
+        img.book-cover{
+            width: 100%;
+            height: auto;
+        }
+
+        div.teaserscroll {
+            overflow: auto;
+            white-space: nowrap;
+        }
+
+        img.teaser{
+            height: 250px
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="title-text">
+        <h1>Dean's Craftoria Server</h1>
+    </div>
+
+    <div class="content">
+        
+        <div class="unified-container">
+            <p>
+                Welcome! This is a simple website to instruct you what mods to install and how to install them in order to play on my minecraft server.
+            </p>
+            
+        </div>
+
+        <hr/> 
+        <!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+
+        <div class="section-header">
+            <h2>Install Curseforge</h2>
+        </div>
+        <div class="split-container">
+            <div class="split-left split-less">
+                <p>
+                    First you'll need to install <a href="https://www.curseforge.com/download/app">Curseforge</a>, a 3rd party modpack manager. See the video on the right for instructions.
+                </p>
+                <p>
+                    You'll need to log into the app with a Google, Twitch, Discord, or Github account. It shouldn't matter what you use.
+                </p>
+            </div>
+            <div class="split-right split-more">
+                <iframe class="youtube" src="https://www.youtube.com/embed/BMBM3RE0EyY" title="How To Install CurseForge For Mods &amp; Modpacks - Full Guide" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>></iframe>
+            </div>
+            
+        </div>
+        <br/>
+        <hr/>
+        <!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+
+        <div class="section-header">
+            <h2>Install Craftoria Modpack</h2>
+        </div>
+        
+        <div class="split-container">
+
+            <div class="split-left split-even">
+                <img class="web-image" src="https://i.imgur.com/Fou9vDL.png">
+            </div>
+            <div class="split-right split-even">
+                <p>
+                    Now that you have Curseforge, you'll want to install the actual modpack Craftoria
+                </p>
+                <p>
+                    In curseforge, navigate to the "Browse" tab and then search "Craftoria". The one you want is simply "Craftoria" by TeamAOE.
+                </p>
+                <p>
+                    Click install, and then if there is a popup asking whether you want to create a new profile or add to an existing, click "Create new profile". A new Craftoria profile should show in the "My Modpacks" tab
+                </p>
+                <p>
+                    After the install, navigate to "My Modpacks" and double check the version. The modpack version should be <b>1.20.2</b> running Minecraft version <b>1.21.1</b>.
+                </p>
+            </div>
+            
+        </div>
+        
+        <br/>
+        <hr/>
+        <!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+        <div class="section-header">
+            <h2>Launch Game and Join Server</h2>
+        </div>
+        <div class="split-container">
+            <div class="split-left split-even">
+                <p>
+                    You should now have everything you need to play!
+                </p>
+                <p>
+                    Hit the "Play" button on your Craftoria profile in Curseforge whenever you want to run the game. The Minecraft launcher will run with the mods already loaded as a new profile. Then simply log into your minecraft account and run the game without changing the profile.
+                </p>
+                <p>
+                    Use the "minecraft.dthasno.website" as the server address.
+                </p>
+            </div>
+            <div class="split-right split-even">
+                <img class="web-image" src="https://i.imgur.com/eypzr7j.png"/>
+            </div>
+        </div>
+        
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+    </div>
+</body>
+
+</html>
