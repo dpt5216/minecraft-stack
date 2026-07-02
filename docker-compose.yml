@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  # --- Caddy reverse proxy + static file server ---
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv/www:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - proxy-net
+
+  # --- Minecraft server (itzg + CurseForge auto-pull) ---
+  minecraft:
+    image: itzg/minecraft-server:java21
+    container_name: minecraft-server
+    restart: unless-stopped
+    ports:
+      - "25565:25565"       # Java Edition
+    volumes:
+      - ./minecraft/data:/data
+    networks:
+      - proxy-net
+    environment:
+      EULA: "TRUE"
+      TYPE: "CURSEFORGE"
+      # Modpack: All the Forge by TeamAMPZ
+      CF_SLUG: "all-the-forge"
+      CF_VERSION: "All The Forge-v11.2.1hf"
+      CF_API_KEY: "${CF_API_KEY}"
+      # JVM memory (12 GB out of 24 GB host)
+      MEMORY: "16G"
+      # Let itzg handle server properties
+      OVERRIDE_SERVER_PROPERTIES: "TRUE"
+      SERVER_NAME: "Dean's Modded Minecraft Server"
+      MOTD: "§5§lDean's Modded Minecraft §r§d— All the Forge v11.2.1hf"
+      DIFFICULTY: "normal"
+      VIEW_DISTANCE: "12"
+      SIMULATION_DISTANCE: "8"
+      MAX_PLAYERS: "20"
+      ONLINE_MODE: "TRUE"
+      ALLOW_NETHER: "TRUE"
+      ALLOW_FLIGHT: "TRUE"
+      ENABLE_COMMAND_BLOCK: "FALSE"
+      # Whitelist & ops files persisted in /data
+      ENFORCE_WHITELIST: "FALSE"
+      # Java tuning for modded
+      USE_AIKAR_FLAGS: "TRUE"
+      JVM_XX_OPTS: "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200"
+    tty: true
+    stdin_open: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  proxy-net:
+    driver: bridge
