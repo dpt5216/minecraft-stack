@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dean's Craftoria Server</title>
+    <title>Dean's Minecraft Server</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500&display=swap" rel="stylesheet">
     <!-- <link rel="icon" type="image/x-icon" href="https://dthasno.website/favicon.png"> -->
     <style>
         body {
-            background-color: #425783;
+            background-color: #413064;
             font-family: 'Jost', sans-serif;
             min-height: 100vh;
             display: flex;
@@ -79,20 +79,17 @@
         .split-right {
             margin-left: 20px;
         }
-        .split-even {
+        .split-66{
+            width: 66.667%;
+        }
+        .split-33{
+            width: 33.333%;
+        }
+        .split-50{
             width: 50%;
         }
-        .split-more{
-            width: 75%;
-        }
-        .split-more-less{
-            width: 67%;
-        }
-        .split-less{
+        .split-25{
             width: 25%;
-        }
-        .split-less-more{
-            width: 33%;
         }
 
         img.web-image{
@@ -116,23 +113,44 @@
         }
 
         img.teaser{
-            height: 250px
+            height: 250px;
+        }
+
+        
+        div.flex-column{
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        
+        div.flex-row{
+            display: flex;
+            justify-content: center;
+            flex-direction: row;
         }
     </style>
 </head>
 <body>
     
     <div class="title-text">
-        <h1>Dean's Craftoria Server</h1>
+        <h1>Dean's Modded Minecraft Server</h1>
     </div>
 
     <div class="content">
         
         <div class="unified-container">
-            <p>
-                Welcome! This is a simple website to instruct you what mods to install and how to install them in order to play on my minecraft server.
-            </p>
             
+            <div class="flex-row">
+                <div class="split-50">
+                    <img class="web-image" src="./img/soy.png">
+                </div>
+            </div>
+            <!-- <div class="split-right split-66 vertical-aligned-text"> -->
+                <p>
+                    Welcome! This is a simple website to instruct you what mods to install and how to install them in order to play on my minecraft server.
+                </p>
+            <!-- </div> -->
         </div>
 
         <hr/> 
@@ -142,7 +160,7 @@
             <h2>Install Curseforge</h2>
         </div>
         <div class="split-container">
-            <div class="split-left split-less">
+            <div class="split-left split-50">
                 <p>
                     First you'll need to install <a href="https://www.curseforge.com/download/app">Curseforge</a>, a 3rd party modpack manager. See the video on the right for instructions.
                 </p>
@@ -150,7 +168,7 @@
                     You'll need to log into the app with a Google, Twitch, Discord, or Github account. It shouldn't matter what you use.
                 </p>
             </div>
-            <div class="split-right split-more">
+            <div class="split-right split-50">
                 <iframe class="youtube" src="https://www.youtube.com/embed/BMBM3RE0EyY" title="How To Install CurseForge For Mods &amp; Modpacks - Full Guide" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>></iframe>
             </div>
             
@@ -160,26 +178,27 @@
         <!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
 
         <div class="section-header">
-            <h2>Install Craftoria Modpack</h2>
+            <h2>Install Modpack</h2>
         </div>
         
         <div class="split-container">
 
-            <div class="split-left split-even">
-                <img class="web-image" src="https://i.imgur.com/Fou9vDL.png">
+
+            <div class="split-left split-50">
+                <img class="web-image" src="./img/cf0.png">
             </div>
-            <div class="split-right split-even">
+            <div class="split-right split-50">
                 <p>
-                    Now that you have Curseforge, you'll want to install the actual modpack Craftoria
+                    Now that you have Curseforge, you'll want to install the actual modpack "All the Forge"
                 </p>
                 <p>
-                    In curseforge, navigate to the "Browse" tab and then search "Craftoria". The one you want is simply "Craftoria" by TeamAOE.
+                    In curseforge, select Minecraft and navigate to the "Browse" tab and then search "All the Forge". The one you want is simply "All the Forge" by TeamAMPZ.
                 </p>
                 <p>
-                    Click install, and then if there is a popup asking whether you want to create a new profile or add to an existing, click "Create new profile". A new Craftoria profile should show in the "My Modpacks" tab
+                    Click install, and then if there is a popup asking whether you want to create a new profile or add to an existing, click "Create new profile". A new profile for the modpack should show in the "My Modpacks" tab
                 </p>
                 <p>
-                    After the install, navigate to "My Modpacks" and double check the version. The modpack version should be <b>1.20.2</b> running Minecraft version <b>1.21.1</b>.
+                    After the install, navigate to "My Modpacks" and double check the version. The modpack version should be <b>"All The Forge-v11.2.1hf"</b> running Minecraft version <b>1.21.1</b>.
                 </p>
             </div>
             
@@ -192,19 +211,19 @@
             <h2>Launch Game and Join Server</h2>
         </div>
         <div class="split-container">
-            <div class="split-left split-even">
+            <div class="split-left split-50">
                 <p>
                     You should now have everything you need to play!
                 </p>
                 <p>
-                    Hit the "Play" button on your Craftoria profile in Curseforge whenever you want to run the game. The Minecraft launcher will run with the mods already loaded as a new profile. Then simply log into your minecraft account and run the game without changing the profile.
+                    Hit the "Play" button on your new profile in Curseforge whenever you want to run the game. The Minecraft launcher will run with the mods already loaded as a new profile. Then simply log into your minecraft account and run the game without changing the profile.
                 </p>
                 <p>
                     Use the "minecraft.dthasno.website" as the server address.
                 </p>
             </div>
-            <div class="split-right split-even">
-                <img class="web-image" src="https://i.imgur.com/eypzr7j.png"/>
+            <div class="split-right split-50">
+                <img class="web-image" src="./img/mc-address-prompt.png"/>
             </div>
         </div>
         
