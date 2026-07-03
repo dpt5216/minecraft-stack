@@ -198,7 +198,7 @@ done
 
 run_test "backup.sh no-args runs" "./scripts/backup.sh --help 2>&1 || true" 10
 run_test "restore.sh no-args shows backups" "./scripts/restore.sh 2>&1 || true" 10
-run_test "disk-check.sh with high thresholds" "./scripts/disk-check.sh --warn-gb 999 --world-gb 999" 10
+run_test "disk-check.sh with high thresholds (exits 1 = warning works)" "./scripts/disk-check.sh --warn-gb 999 --world-gb 999; test \$? -eq 1" 10
 run_test "status.sh --oneline" "./scripts/status.sh --oneline" 15
 run_test "status.sh full output" "./scripts/status.sh" 20
 
@@ -309,9 +309,11 @@ emit "${CYAN}[5] Checking scripts are safe for unattended cron${RESET}"
 
 for script in scripts/disk-check.sh scripts/status.sh scripts/error-scan.sh scripts/crash-watch.sh scripts/daily-report.sh scripts/backup.sh; do
   if grep -q 'cd "$(dirname "$0")/.."' "$script" 2>/dev/null; then
-    verify "$(basename "$script") cd's to repo root (cron-safe)" "grep -q 'cd.*dirname.*\\$0.*\\.\\.' $script"
+    emit "  ${GREEN}  OK${RESET} $(basename "$script") cd's to repo root (cron-safe)"
+    PASS=$((PASS + 1))
   else
-    emit "  ${YELLOW}  !${RESET} $(basename "$script") does not cd to repo root"
+    emit "  ${RED}  XX${RESET} $(basename "$script") does not cd to repo root"
+    FAIL=$((FAIL + 1))
   fi
 done
 

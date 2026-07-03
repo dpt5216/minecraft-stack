@@ -18,6 +18,7 @@ RED='\033[0;31m'
 YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
+DIM='\033[2m'
 RESET='\033[0m'
 
 PASS=0

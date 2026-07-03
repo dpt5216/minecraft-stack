@@ -6,42 +6,63 @@
 #   source scripts/common.sh
 #
 
-# get_tps: trigger spark health via RCON, wait for the report to
-# appear in docker logs, parse the TPS value.
+# get_tps: trigger spark health via RCON, capture the response,
+# and/or parse the TPS value from docker logs.
 #
-# Spark health doesn't return data via RCON (the report is printed
-# to the server console asynchronously after ~10s of sampling).
-# So we send the command, wait, then grep the docker logs.
+# Spark health takes ~10s to sample. The report may come back via
+# the RCON response channel OR via the server console log. We check
+# both: first the RCON response (captured, not discarded), then
+# poll docker logs for up to 15s.
 #
 # Returns the TPS number on stdout (e.g. "19.8"), or empty string.
-# Takes ~12 seconds to complete.
+# Takes ~15 seconds worst case.
 #
 get_tps() {
-  docker compose exec -T minecraft rcon-cli "spark health" < /dev/null 2>/dev/null || true
-  sleep 12
-  docker compose logs minecraft --since 20s 2>/dev/null \
-    | grep -oiP 'TPS[:\s]*\K[\d.]+' \
-    | tail -1 || true
+  # Send spark health and capture the full RCON response
+  RCON_OUTPUT=$(timeout --kill-after=3 15 \
+    docker compose exec -T minecraft rcon-cli "spark health" \
+    < /dev/null 2>/dev/null) || true
+
+  # Try parsing TPS from the immediate RCON response
+  TPS=$(echo "$RCON_OUTPUT" | grep -oiP 'tps[^:]*:\s*\K[\d.]+' | head -1 || true)
+  if [ -n "$TPS" ]; then
+    echo "$TPS"
+    return 0
+  fi
+
+  # If not in RCON response, poll docker logs for up to 15 seconds
+  for i in $(seq 1 15); do
+    sleep 1
+    TPS=$(docker compose logs minecraft --since 25s 2>/dev/null \
+          | grep -oiP 'tps[^:]*:\s*\K[\d.]+' \
+          | tail -1 || true)
+    if [ -n "$TPS" ]; then
+      echo "$TPS"
+      return 0
+    fi
+  done
+
+  # No TPS found anywhere
+  return 0
 }
 
 # get_tps_fast: check recent logs for a TPS value without triggering
-# a new spark health command. Useful for continuous monitoring where
-# another script or cron already requested spark health.
+# a new spark health command. Useful when another script already
+# requested spark health recently.
 #
-# Returns the TPS number on stdout, or empty string.
-# Fast (~1 second).
+# Returns the TPS number on stdout, or empty string. Fast (~1s).
 #
 get_tps_fast() {
   docker compose logs minecraft --since 60s 2>/dev/null \
-    | grep -oiP 'TPS[:\s]*\K[\d.]+' \
+    | grep -oiP 'tps[^:]*:\s*\K[\d.]+' \
     | tail -1 || true
 }
 
-# get_mspt: same approach as get_tps but for MSPT (milliseconds per tick).
+# get_mspt: check recent logs for MSPT value.
 # Requires spark health to have been recently triggered.
 #
 get_mspt() {
-  docker compose logs minecraft --since 20s 2>/dev/null \
-    | grep -oiP 'MSPT[:\s]*\K[\d.]+' \
+  docker compose logs minecraft --since 25s 2>/dev/null \
+    | grep -oiP 'mspt[^:]*:\s*\K[\d.]+' \
     | tail -1 || true
 }
