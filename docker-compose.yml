@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # --- Caddy reverse proxy + static file server ---
   caddy:
@@ -33,16 +31,13 @@ services:
       EULA: "TRUE"
       TYPE: "CURSEFORGE"
       # Modpack: All the Forge by TeamAMPZ
-      CF_SLUG: "all-the-forge"
-      CF_VERSION: "All The Forge-v11.2.1hf"
-      CF_API_KEY: "${CF_API_KEY}"
-      # JVM memory (12 GB out of 24 GB host)
+      CF_SERVER_MOD: "https://mediafilez.forgecdn.net/files/7978/707/ATFG11%20v11.2.1hf%20Server%20Files.zip"
       MEMORY: "16G"
       # Let itzg handle server properties
       OVERRIDE_SERVER_PROPERTIES: "TRUE"
       SERVER_NAME: "Dean's Modded Minecraft Server"
       MOTD: "§5§lDean's Modded Minecraft §r§d— All the Forge v11.2.1hf"
-      DIFFICULTY: "normal"
+      DIFFICULTY: "hard"
       VIEW_DISTANCE: "12"
       SIMULATION_DISTANCE: "8"
       MAX_PLAYERS: "20"
