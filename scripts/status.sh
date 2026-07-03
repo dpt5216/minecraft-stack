@@ -4,17 +4,17 @@
 #
 # Usage:
 #   ./scripts/status.sh           # full status (multi-line)
-#   ./scripts/status.sh --oneline # single line, for logging
+#   ./scripts/status.sh --oneline # single line, for cron logging
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+source scripts/common.sh
 
 ONELINE=false
 if [[ "${1:-}" == "--oneline" ]]; then
   ONELINE=true
 fi
-
-source scripts/common.sh
 
 rcon() {
   timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "$@" < /dev/null 2>/dev/null || echo ""
@@ -27,9 +27,9 @@ if [ "$ONELINE" = true ]; then
   TS=$(date '+%Y-%m-%d %H:%M:%S')
   if echo "$RUNNING" | grep -qi "Up"; then
     PLAYERS=$(rcon "list" | grep -oP '\d+/' | tr -d '/' || echo "0")
-    TPS=$(get_tps || echo "?")
+    HEALTH=$(get_health || echo "unknown")
     MEM=$(docker stats --no-stream --format '{{.MemUsage}}' minecraft-server 2>/dev/null | cut -d'/' -f1 | tr -d ' ' || echo "?")
-    echo "$TS | TPS:$TPS | Players:$PLAYERS | Mem:$MEM"
+    echo "$TS | Health:$HEALTH | Players:$PLAYERS | Mem:$MEM"
   else
     echo "$TS | OFFLINE"
   fi
@@ -60,19 +60,17 @@ fi
 PLAYERS=$(rcon "list" 2>/dev/null || echo "No response")
 echo -e "  Players:    ${PLAYERS}"
 
-# 3. TPS (parsed from server logs after triggering spark health)
-echo -e "${DIM}  TPS:        sampling (spark health via log)...${RESET}"
-TPS=$(get_tps || echo "")
-if [ -n "$TPS" ]; then
-  if echo "$TPS" | awk '{exit ($1 >= 19.0) ? 0 : 1}' 2>/dev/null; then
-    echo -e "  TPS:        ${GREEN}${TPS} / 20.0${RESET}"
-  elif echo "$TPS" | awk '{exit ($1 >= 15.0) ? 0 : 1}' 2>/dev/null; then
-    echo -e "  TPS:        ${YELLOW}${TPS} / 20.0${RESET}"
-  else
-    echo -e "  TPS:        ${RED}${TPS} / 20.0${RESET}"
-  fi
+# 3. Health (from "Can't keep up" warning count)
+HEALTH=$(get_health || echo "unknown")
+HEALTH_COUNT=$(get_health_count || echo "?")
+if [ "$HEALTH" = "healthy" ]; then
+  echo -e "  Health:     ${GREEN}${HEALTH}${RESET} (0 lag warnings in last hour)"
+elif [ "$HEALTH" = "minor" ]; then
+  echo -e "  Health:     ${YELLOW}${HEALTH}${RESET} (${HEALTH_COUNT} lag warnings in last hour)"
+elif [ "$HEALTH" = "lagging" ]; then
+  echo -e "  Health:     ${RED}${BOLD}${HEALTH}${RESET} (${HEALTH_COUNT} lag warnings in last hour)"
 else
-  echo -e "  TPS:        ${DIM}(no spark data in recent logs)${RESET}"
+  echo -e "  Health:     ${DIM}${HEALTH}${RESET} (couldn't read logs)"
 fi
 
 # 4. Memory (docker stats)

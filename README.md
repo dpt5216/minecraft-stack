@@ -56,7 +56,7 @@ A fully reproducible, Docker-based Minecraft server running the **All the Forge 
 
 | Container | Image | Purpose | Lifecycle |
 |---|---|---|---|
-| **caddy** | `caddy:latest` | Reverse proxy with automatic HTTPS (Let's Encrypt) for the static landing page at `minecraft.dthasno.website` | Always running |
+| **caddy** | `caddy:latest` | Reverse proxy with automatic HTHealth (Let's Encrypt) for the static landing page at `minecraft.dthasno.website` | Always running |
 | **minecraft-setup** | `eclipse-temurin:21` | One-shot init: downloads the server pack, installs NeoForge, applies tracked config, pulls extra mods | Runs once, exits successfully, skipped on subsequent boots |
 | **minecraft** | `itzg/minecraft-server:java21` | The game server. Waits for setup to finish, then runs `/data/run.sh` | Always running (restarts on crash) |
 
@@ -603,14 +603,14 @@ Several optimization mods are installed via `extra-mods.txt`:
 | **FerriteCore** | Reduces memory usage by optimizing how blocks, items, and entities are stored in RAM. | None — passive |
 | **ModernFix** | Speeds up server startup and fixes several performance bugs in vanilla code paths. | `/modernfix` |
 | **AI Improvements** | Optimizes entity AI: reduces unnecessary pathfinding, limits tick frequency for distant mobs. | Config file in `config/` |
-| **Spark** | Real-time profiler. Use to identify what's causing lag. | `/spark health` (quick report), `/spark profiler` (detailed profiling) |
+| **Spark** | Real-time profiler. Use to identify what's causing lag. | `/spark health` (quick report), `/spark profiler` (detailed profiling) -- use in-game only, not via RCON |
 
 **Using Spark to diagnose lag:**
 
 ```
 # In-game or console:
 spark health
-# Shows memory, GC, TPS, and mspt (milliseconds per tick)
+# Shows memory, GC, Health, and mspt (milliseconds per tick)
 
 spark profiler --thread server
 # Runs a CPU profiler for 60 seconds, then gives you a web link
@@ -764,7 +764,7 @@ Recommended schedule:
 0 8 * * * /path/to/minecraft-stack/scripts/daily-report.sh
 
 # === Hourly ===
-# Health snapshot to log file (TPS trend over time)
+# Health snapshot to log file (Health trend over time)
 0 * * * * /path/to/minecraft-stack/scripts/status.sh --oneline >> /path/to/logs/health.log 2>&1
 
 # Error scan (last hour of logs)
@@ -786,8 +786,8 @@ Replace `/path/to/minecraft-stack` with your actual repo path.
 Run these manually in a tmux pane while playing or testing:
 
 ```bash
-# Real-time TPS monitor (green/yellow/red, updates every 5s)
-./scripts/tps-watch.sh
+# Real-time Health monitor (green/yellow/red, updates every 5s)
+./scripts/health-watch.sh
 
 # Filtered log watcher (errors/warnings only, no chunk-load spam)
 ./scripts/log-watch.sh
@@ -796,7 +796,7 @@ Run these manually in a tmux pane while playing or testing:
 ### On-demand scripts
 
 ```bash
-# One-shot server health overview (TPS, memory, disk, players, logs)
+# One-shot server health overview (Health, memory, disk, players, logs)
 ./scripts/status.sh
 
 # Disk space and world size check
@@ -873,7 +873,7 @@ spark health
 ```
 
 This shows:
-- **TPS** (ticks per second) — should be 20.0; lower means lag
+- **Health** (ticks per second) — should be 20.0; lower means lag
 - **MSPT** (milliseconds per tick) — should be under 50ms
 - **Memory usage** — should stay below 80% of allocated
 - **GC pauses** — should be infrequent and short
@@ -889,8 +889,8 @@ If MSPT is high, run `spark profiler` to get a detailed flame graph showing exac
 | Port | Protocol | Service | Purpose |
 |---|---|---|---|
 | 25565 | TCP | minecraft | Java Edition game traffic |
-| 80 | TCP | caddy | HTTP → redirects to HTTPS |
-| 443 | TCP/UDP | caddy | HTTPS (TLS) + HTTP/3 (QUIC) |
+| 80 | TCP | caddy | HTTP → redirects to HTHealth |
+| 443 | TCP/UDP | caddy | HTHealth (TLS) + HTTP/3 (QUIC) |
 
 ### Firewall configuration
 

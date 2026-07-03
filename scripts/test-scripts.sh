@@ -164,7 +164,7 @@ run_test "minecraft container exists" "docker compose ps minecraft --format '{{.
 run_test "minecraft container is Up" "docker compose ps minecraft --format '{{.Status}}' | head -1 | grep -qi 'Up'" 10
 run_test "caddy container is Up" "docker compose ps caddy --format '{{.Status}}' | head -1 | grep -qi 'Up'" 10
 run_test "RCON responsive (list)" "docker compose exec -T minecraft rcon-cli 'list'" 15
-run_test "spark health responds" "docker compose exec -T minecraft rcon-cli 'spark health'" 20
+run_test "docker logs accessible for health check" "docker compose logs minecraft --tail 1 2>/dev/null | head -1" 10
 run_test ".env file exists" "test -f .env && echo '.env found'" 5
 run_test "scripts/ dir exists" "test -d scripts && ls scripts/*.sh | wc -l" 5
 run_test "backups/ dir exists" "test -d backups || (mkdir -p backups && echo 'created')" 5
@@ -199,8 +199,8 @@ done
 run_test "backup.sh no-args runs" "./scripts/backup.sh --help 2>&1 || true" 10
 run_test "restore.sh no-args shows backups" "./scripts/restore.sh 2>&1 || true" 10
 run_test "disk-check.sh with high thresholds (exits 1 = warning works)" "./scripts/disk-check.sh --warn-gb 999 --world-gb 999; test \$? -eq 1" 10
-run_test "status.sh --oneline" "./scripts/status.sh --oneline" 15
-run_test "status.sh full output" "./scripts/status.sh" 20
+run_test "status.sh --oneline" "./scripts/status.sh --oneline" 5
+run_test "status.sh full output" "./scripts/status.sh" 10
 
 
 # === STAGE 3: Behavior Against Live Server ===
@@ -211,7 +211,7 @@ emit "${CYAN}[3] status.sh deep check${RESET}"
 STATUS_OUTPUT=$(timeout --kill-after=5 30 ./scripts/status.sh 2>&1) || true
 echo "$STATUS_OUTPUT" | grep -q "Container:" && verify "shows container status" "echo '$STATUS_OUTPUT' | grep -q 'Container:'" || true
 echo "$STATUS_OUTPUT" | grep -q "Players:" && verify "shows player count" "echo '$STATUS_OUTPUT' | grep -q 'Players:'" || true
-echo "$STATUS_OUTPUT" | grep -q "TPS:" && verify "shows TPS" "echo '$STATUS_OUTPUT' | grep -q 'TPS:'" || true
+echo "$STATUS_OUTPUT" | grep -q "TPS:" && verify "shows health" "echo '$STATUS_OUTPUT' | grep -q 'TPS:'" || true
 echo "$STATUS_OUTPUT" | grep -q "Memory:" && verify "shows memory" "echo '$STATUS_OUTPUT' | grep -q 'Memory:'" || true
 echo "$STATUS_OUTPUT" | grep -q "Disk:" && verify "shows disk" "echo '$STATUS_OUTPUT' | grep -q 'Disk:'" || true
 
@@ -222,7 +222,7 @@ echo "$DISK_OUTPUT" | grep -qi "free space" && verify "shows free space" "echo '
 echo "$DISK_OUTPUT" | grep -qi "minecraft/data" && verify "shows data dir size" "echo '$DISK_OUTPUT' | grep -qi 'minecraft/data'" || true
 echo "$DISK_OUTPUT" | grep -qi "world/" && verify "shows world size" "echo '$DISK_OUTPUT' | grep -qi 'world/'" || true
 
-run_test "tps-watch.sh runs 8s then timeout-kills" "timeout 8 ./scripts/tps-watch.sh 2>&1; test \$? -eq 124" 15
+run_test "health-watch.sh runs 8s then timeout-kills" "timeout 8 ./scripts/health-watch.sh 2>&1; test \$? -eq 124" 15
 run_test "log-watch.sh --since 5s (bounded)" "timeout 10 ./scripts/log-watch.sh --since 5s 2>&1 || true" 15
 
 run_test "mod-audit.sh lists installed mods" "./scripts/mod-audit.sh" 60
@@ -239,7 +239,7 @@ emit "${CYAN}[3] pre-flight.sh deep check${RESET}"
 PF_OUTPUT=$(timeout --kill-after=5 30 ./scripts/pre-flight.sh 2>&1) || true
 echo "$PF_OUTPUT" | grep -qi "container running" && verify "checks container" "echo '$PF_OUTPUT' | grep -qi 'container running'" || true
 echo "$PF_OUTPUT" | grep -qi "RCON" && verify "checks RCON" "echo '$PF_OUTPUT' | grep -qi 'RCON'" || true
-echo "$PF_OUTPUT" | grep -qi "TPS" && verify "checks TPS" "echo '$PF_OUTPUT' | grep -qi 'TPS'" || true
+echo "$PF_OUTPUT" | grep -qi "TPS" && verify "checks health" "echo '$PF_OUTPUT' | grep -qi 'TPS'" || true
 echo "$PF_OUTPUT" | grep -qi "disk" && verify "checks disk" "echo '$PF_OUTPUT' | grep -qi 'disk'" || true
 echo "$PF_OUTPUT" | grep -qi "backup" && verify "checks backup" "echo '$PF_OUTPUT' | grep -qi 'backup'" || true
 
@@ -317,7 +317,7 @@ for script in scripts/disk-check.sh scripts/status.sh scripts/error-scan.sh scri
   fi
 done
 
-run_test "status.sh --oneline is parseable" "./scripts/status.sh --oneline | grep -qE '[0-9]{4}-[0-9]{2}-[0-9]{2}.*TPS:.*Players:.*Mem:'" 15
+run_test "status.sh --oneline is parseable" "./scripts/status.sh --oneline | grep -qE '[0-9]{4}-[0-9]{2}-[0-9]{2}.*Health:.*Players:.*Mem:'" 5
 run_test "disk-check.sh exits 1 on impossible threshold" "./scripts/disk-check.sh --warn-gb 999999 2>&1; test \$? -eq 1" 10
 
 # === STAGE 6: File and Output Verification ===

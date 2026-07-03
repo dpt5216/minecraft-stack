@@ -2,7 +2,7 @@
 #
 # pre-flight.sh - 30-second "is the server ready for tonight" check
 #
-# Runs status, disk-check, backup verification, and boot-error scan.
+# Runs health check, disk space, backup verification, and boot-error scan.
 # Prints a pass/fail summary.
 #
 # Usage:
@@ -57,16 +57,18 @@ else
   check "RCON responsive" fail
 fi
 
-# 3. TPS >= 18? (parsed from server logs)
-echo -e "${DIM}  TPS: sampling (spark health via log)...${RESET}"
-TPS=$(get_tps || echo "0")
-if [ -z "$TPS" ]; then
-  TPS="0"
-fi
-if echo "$TPS" | awk '{exit ($1 >= 18.0) ? 0 : 1}' 2>/dev/null; then
-  check "TPS healthy ($TPS / 20.0)" pass
+# 3. Health: "Can't keep up" count in last hour
+echo -e "${DIM}  Health: checking recent lag warnings...${RESET}"
+HEALTH=$(get_health || echo "unknown")
+HEALTH_COUNT=$(get_health_count || echo "0")
+if [ "$HEALTH" = "healthy" ]; then
+  check "Server healthy (0 lag warnings in last hour)" pass
+elif [ "$HEALTH" = "minor" ]; then
+  check "Server health: minor lag (${HEALTH_COUNT} warnings in last hour)" pass
+elif [ "$HEALTH" = "lagging" ]; then
+  check "Server health: lagging (${HEALTH_COUNT} warnings in last hour)" fail
 else
-  check "TPS healthy ($TPS / 20.0)" fail
+  check "Server health: couldn't read logs" fail
 fi
 
 # 4. Disk space
