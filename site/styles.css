@@ -1,5 +1,19 @@
+:root {
+    /* Color palette */
+    --color-bg: #413064;
+    --color-text: white;
+    --color-link: #6ab0ff;
+    --color-link-alt: #7dbaff;
+    --color-hr: #6ab0ff;  
+}
+
+hr {
+    border: none;
+    border-top: 4px dashed var(--color-hr);
+}
+
 body {
-    background-color: #413064;
+    background-color: var(--color-bg);
     font-family: 'Jost', sans-serif;
     min-height: 100vh;
     display: flex;
@@ -9,7 +23,7 @@ body {
 .title-text {
     text-align: center;
     width: 800px;
-    color: white;
+    color: var(--color-text);
     font-size: x-large;
 }
 h1, h2, h3, h4, h5, h6 {
@@ -23,35 +37,35 @@ h1, h2, h3, h4, h5, h6 {
     padding: 10px;
     text-align: right;
     width: 800px;
-    color: white;
+    color: var(--color-text);
 }
 .linkbar a {
     margin-right: 15px;
     text-decoration: none;
-    color: rgb(127, 193, 255);
+    color: var(--color-link);
 }
 .homelink {
     margin-top: 30px;
     padding: 10px;
     text-align: left;
     width: 800px;
-    color: white;
+    color: var(--color-text);
 }
 .homelink a {
     margin-left: 15px;
     text-decoration: none;
-    color: rgb(127, 193, 255);
+    color: var(--color-link);
 }
 .content {
     width: 800px;
-    color: white;
+    color: var(--color-text);
 }
 .blog-post {
     margin-bottom: 20px;
 }
 
 a {
-    color: rgb(127, 229, 255);
+    color: var(--color-link-alt);
 }
 
 .section-header {
