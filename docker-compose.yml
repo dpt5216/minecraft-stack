@@ -1,7 +1,8 @@
 services:
   # --- Caddy reverse proxy + static file server ---
   caddy:
-    image: caddy:latest
+    # Pinned 2026-06-24; update intentionally
+    image: caddy:2.11
     container_name: caddy
     restart: unless-stopped
     ports:
@@ -16,7 +17,7 @@ services:
     networks:
       - proxy-net
 
-        # --- One-shot setup: downloads + extracts + installs NeoForge ---
+  # --- One-shot setup: downloads + extracts + installs NeoForge ---
   minecraft-setup:
     image: eclipse-temurin:21
     container_name: minecraft-setup
@@ -30,15 +31,14 @@ services:
 
   # --- Minecraft server ---
   minecraft:
-    image: itzg/minecraft-server:java21
+    # Pinned 2026-06-22; update intentionally
+    image: itzg/minecraft-server:2026.6.1-java21
     container_name: minecraft-server
     restart: unless-stopped
     ports:
       - "25565:25565"
     volumes:
       - ./minecraft/data:/data
-    networks:
-      - proxy-net
     depends_on:
       minecraft-setup:
         condition: service_completed_successfully
@@ -49,9 +49,10 @@ services:
       MEMORY: "16G"
       # server.properties is managed manually — edit ./minecraft/data/server.properties
       USE_AIKAR_FLAGS: "TRUE"
-      JVM_XX_OPTS: "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200"
     tty: true
     stdin_open: true
+    mem_limit: 20g
+    mem_reservation: 16g
 
 volumes:
   caddy_data:

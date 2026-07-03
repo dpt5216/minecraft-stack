@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 if [ -f /data/run.sh ]; then
   echo "[setup] Server already installed, skipping."
@@ -15,11 +16,18 @@ mkdir -p /tmp/pack
 unzip -q -o /tmp/pack.zip -d /tmp/pack
 
 # Find the folder containing the NeoForge installer
-EXTRACTED_DIR=$(find /tmp/pack -name "neoforge-*-installer.jar" -exec dirname {} \; | head -1)
-if [ -z "$EXTRACTED_DIR" ]; then
+INSTALLERS=$(find /tmp/pack -name "neoforge-*-installer.jar")
+INSTALLER_COUNT=$(printf '%s\n' "$INSTALLERS" | grep -c .)
+if [ "$INSTALLER_COUNT" -eq 0 ]; then
   echo "[setup] ERROR: Could not find NeoForge installer"
   exit 1
 fi
+if [ "$INSTALLER_COUNT" -gt 1 ]; then
+  echo "[setup] ERROR: Found $INSTALLER_COUNT installers, expected 1:"
+  printf '%s\n' "$INSTALLERS"
+  exit 1
+fi
+EXTRACTED_DIR=$(dirname "$INSTALLERS")
 
 # Clean /data of any previous partial extraction
 echo "[setup] Cleaning /data..."
@@ -44,7 +52,10 @@ if [ -f /tmp/extra-mods.txt ]; then
   echo "[setup] Downloading extra mods..."
   grep -v '^#' /tmp/extra-mods.txt | grep -v '^$' | while read -r url; do
     echo "[setup]   -> $url"
-    wget -q -P /data/mods "$url"
+    filename=$(basename "$url")
+    # decode percent-encoding so %2B -> +, %20 -> space, etc.
+    filename=$(printf '%b' "${filename//%/\\x}")
+    wget -q -O "/data/mods/$filename" "$url"
   done
 fi
 

@@ -3,8 +3,6 @@
 
 # Minecraft server data
 minecraft/data/
-minecraft/world/
-minecraft/logs/
 
 # Docker
 docker-compose.override.yml
@@ -12,3 +10,6 @@ docker-compose.override.yml
 # OS
 .DS_Store
 Thumbs.db
+
+# Local review/scratch output
+ignored/

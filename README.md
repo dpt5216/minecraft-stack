@@ -83,7 +83,6 @@ minecraft-stack/
 ├── Caddyfile                   # Reverse proxy config + TLS for the landing page
 ├── .gitignore                  # Ignores data/, secrets, OS files
 ├── README.md                   # This file
-├── env.example                 # Template for .env (optional; no API key required)
 ├── site/                       # Static landing page served by Caddy
 │   ├── index.html              # Player-facing setup instructions
 │   └── img/                    # Screenshots and images
@@ -140,9 +139,6 @@ Point an A record for `minecraft.dthasno.website` to your server's public IP. Ca
 # Clone the repo
 git clone <repo-url> minecraft-stack
 cd minecraft-stack
-
-# (Optional) Copy the env template — no API key is needed
-cp env.example .env
 
 # Start everything
 docker compose up -d
@@ -301,7 +297,6 @@ Configured in `docker-compose.yml` under the `minecraft` service environment:
 ```yaml
 MEMORY: "16G"
 USE_AIKAR_FLAGS: "TRUE"
-JVM_XX_OPTS: "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200"
 ```
 
 **Aikar's flags** are the community-standard JVM tuning for Minecraft servers, optimized for GC pause times and throughput. The `MEMORY` variable sets both the initial (`-Xms`) and max (`-Xmx`) heap size.
@@ -334,7 +329,6 @@ All environment variables for the `minecraft` service:
 | `CUSTOM_SERVER` | `/data/run.sh` | The script to execute to start the server |
 | `MEMORY` | `16G` | JVM heap size (sets both -Xms and -Xmx) |
 | `USE_AIKAR_FLAGS` | `TRUE` | Enables Aikar's optimized GC flags |
-| `JVM_XX_OPTS` | `-XX:+UseG1GC ...` | Additional JVM arguments (complements Aikar flags) |
 
 ---
 
@@ -588,11 +582,15 @@ docker compose up -d
 ```bash
 docker compose down
 rm -rf minecraft/data/*
-tar -xzf world-backup-20250703.tar.gz -C .
+docker compose up -d
+# wait for minecraft-setup to finish:
+docker compose logs minecraft-setup -f   # until "[setup] Done!"
+docker compose stop minecraft
+tar -xzf world-backup-20250703.tar.gz -C .   # extracts minecraft/data/world
 docker compose up -d
 ```
 
-The setup container will see `/data/run.sh` was deleted and re-run setup, then your restored world will already be in place.
+> ⚠️ **Order matters:** `setup.sh` wipes `/data` on re-run, so the world must be copied back only *after* setup completes. Restoring the world before `up` causes setup to nuke it.
 
 > 💡 **Automated backups:** Consider setting up a cron job to run the world backup nightly. The server doesn't need to stop — a hot copy is usually fine for a small server, though a stopped server guarantees consistency.
 
