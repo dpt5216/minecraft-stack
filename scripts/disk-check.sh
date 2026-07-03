@@ -78,7 +78,7 @@ fi
 # Backups directory
 if [ -d "backups" ]; then
   BK_SIZE=$(du -sh "backups" 2>/dev/null | cut -f1)
-  BK_COUNT=$(ls -1 backups/*.tar.gz 2>/dev/null | wc -l)
+  BK_COUNT=$(find backups -name '*.tar.gz' 2>/dev/null | wc -l)
   echo -e "  ${DIM}backups/:           ${BK_SIZE} (${BK_COUNT} archives)${RESET}"
 fi
 

@@ -59,7 +59,7 @@ if [ "$MODE" = "full" ]; then
   echo -e "${CYAN}[backup]${RESET} Stopping server for consistent snapshot..."
   docker compose stop minecraft
   sleep 3
-  tar -czf "$ARCHIVE" "$TARGET"
+  tar -czf "$ARCHIVE" "$TARGET" || [ $? -eq 1 ]
   echo -e "${CYAN}[backup]${RESET} Restarting server..."
   docker compose up -d
 else
@@ -73,6 +73,10 @@ else
   echo -e "${DIM}[backup] ${SAVE_OUTPUT}${RESET}"
   sleep 2
 
+  # Pause auto-save so tar gets a consistent snapshot
+  echo -e "${CYAN}[backup]${RESET} Pausing auto-save (save-off)..."
+  rcon "save-off" || true
+
   # Check for DH LOD data
   DH_DIR="minecraft/data/DistantHorizons"
   DH_ARGS=""
@@ -81,7 +85,11 @@ else
     echo -e "${CYAN}[backup]${RESET} Including DH LOD data"
   fi
 
-  tar -czf "$ARCHIVE" "$TARGET" $DH_ARGS
+  tar -czf "$ARCHIVE" "$TARGET" $DH_ARGS || [ $? -eq 1 ]
+
+  # Resume auto-save
+  echo -e "${CYAN}[backup]${RESET} Resuming auto-save (save-on)..."
+  rcon "save-on" || true
 fi
 
 SIZE=$(du -sh "$ARCHIVE" | cut -f1)

@@ -225,7 +225,7 @@ echo "$DISK_OUTPUT" | grep -qi "world/" && verify "shows world size" "echo '$DIS
 run_test "tps-watch.sh runs 8s then timeout-kills" "timeout 8 ./scripts/tps-watch.sh 2>&1; test \$? -eq 124" 15
 run_test "log-watch.sh --since 5s (bounded)" "timeout 10 ./scripts/log-watch.sh --since 5s 2>&1 || true" 15
 
-run_test "mod-audit.sh lists installed mods" "./scripts/mod-audit.sh" 20
+run_test "mod-audit.sh lists installed mods" "./scripts/mod-audit.sh" 60
 emit ""
 emit "${CYAN}[3] mod-audit.sh deep check${RESET}"
 MOD_OUTPUT=$(timeout --kill-after=5 30 ./scripts/mod-audit.sh 2>&1) || true

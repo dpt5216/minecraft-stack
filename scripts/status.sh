@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# status.sh — one-command server health overview
+# status.sh - one-command server health overview
 #
 # Usage:
 #   ./scripts/status.sh           # full status (multi-line)
@@ -14,6 +14,8 @@ if [[ "${1:-}" == "--oneline" ]]; then
   ONELINE=true
 fi
 
+source scripts/common.sh
+
 rcon() {
   timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "$@" < /dev/null 2>/dev/null || echo ""
 }
@@ -25,8 +27,7 @@ if [ "$ONELINE" = true ]; then
   TS=$(date '+%Y-%m-%d %H:%M:%S')
   if echo "$RUNNING" | grep -qi "Up"; then
     PLAYERS=$(rcon "list" | grep -oP '\d+/' | tr -d '/' || echo "0")
-    TPS_LINE=$(rcon "spark health" 2>/dev/null | grep -iE 'tps|mspt' | head -1)
-    TPS=$(echo "$TPS_LINE" | grep -oP '[\d.]+' | head -1 || echo "?")
+    TPS=$(get_tps || echo "?")
     MEM=$(docker stats --no-stream --format '{{.MemUsage}}' minecraft-server 2>/dev/null | cut -d'/' -f1 | tr -d ' ' || echo "?")
     echo "$TS | TPS:$TPS | Players:$PLAYERS | Mem:$MEM"
   else
@@ -49,8 +50,7 @@ echo ""
 
 # 1. Container status
 if echo "$RUNNING" | grep -qi "Up"; then
-  UPTIME=$(echo "$RUNNING" | grep -oP 'Up \K[^ ]+( [a-z]+)?' || echo "?")
-  echo -e "${GREEN}  Container:  Up ($UPTIME)${RESET}"
+  echo -e "${GREEN}  Container:  Up${RESET}"
 else
   echo -e "${RED}  Container:  DOWN${RESET}"
   exit 1
@@ -60,23 +60,19 @@ fi
 PLAYERS=$(rcon "list" 2>/dev/null || echo "No response")
 echo -e "  Players:    ${PLAYERS}"
 
-# 3. TPS (from spark health)
-TPS_OUTPUT=$(rcon "spark health" 2>/dev/null || echo "")
-if [ -n "$TPS_OUTPUT" ]; then
-  TPS=$(echo "$TPS_OUTPUT" | grep -oiP 'tps[^:]*:\s*\K[\d.]+' | head -1 || echo "?")
-  MSPT=$(echo "$TPS_OUTPUT" | grep -oiP 'mspt[^:]*:\s*\K[\d.]+' | head -1 || echo "?")
-  if [ "$TPS" = "?" ]; then
-    echo -e "  TPS:        ${DIM}(spark sampling -- run again in a moment)${RESET}"
-  elif echo "$TPS" | awk '{exit ($1 >= 19.0) ? 0 : 1}'; then
+# 3. TPS (parsed from server logs after triggering spark health)
+echo -e "${DIM}  TPS:        sampling (spark health via log)...${RESET}"
+TPS=$(get_tps || echo "")
+if [ -n "$TPS" ]; then
+  if echo "$TPS" | awk '{exit ($1 >= 19.0) ? 0 : 1}' 2>/dev/null; then
     echo -e "  TPS:        ${GREEN}${TPS} / 20.0${RESET}"
-  elif echo "$TPS" | awk '{exit ($1 >= 15.0) ? 0 : 1}'; then
+  elif echo "$TPS" | awk '{exit ($1 >= 15.0) ? 0 : 1}' 2>/dev/null; then
     echo -e "  TPS:        ${YELLOW}${TPS} / 20.0${RESET}"
   else
     echo -e "  TPS:        ${RED}${TPS} / 20.0${RESET}"
   fi
-  echo -e "  MSPT:       ${DIM}${MSPT} ms${RESET}"
 else
-  echo -e "  TPS:        ${DIM}(spark not responding)${RESET}"
+  echo -e "  TPS:        ${DIM}(no spark data in recent logs)${RESET}"
 fi
 
 # 4. Memory (docker stats)

@@ -1,4 +1,4 @@
-#!/bash/bash
+#!/bin/bash
 #
 # log-watch.sh — filtered live log watcher
 #

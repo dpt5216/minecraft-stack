@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# pre-flight.sh — 30-second "is the server ready for tonight" check
+# pre-flight.sh - 30-second "is the server ready for tonight" check
 #
 # Runs status, disk-check, backup verification, and boot-error scan.
 # Prints a pass/fail summary.
@@ -10,6 +10,8 @@
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+source scripts/common.sh
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -25,10 +27,10 @@ check() {
   local label="$1"
   local result="$2"
   if [ "$result" = "pass" ]; then
-    echo -e "  ${GREEN}✓${RESET} $label"
+    echo -e "  ${GREEN}OK${RESET} $label"
     PASS=$((PASS + 1))
   else
-    echo -e "  ${RED}✗${RESET} $label"
+    echo -e "  ${RED}XX${RESET} $label"
     FAIL=$((FAIL + 1))
   fi
 }
@@ -47,17 +49,20 @@ else
 fi
 
 # 2. RCON responsive?
-RCON_TEST=$(docker compose exec -T minecraft rcon-cli "list" 2>/dev/null || echo "")
+RCON_TEST=$(timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "list" < /dev/null 2>/dev/null || echo "")
 if [ -n "$RCON_TEST" ]; then
   check "RCON responsive" pass
 else
   check "RCON responsive" fail
 fi
 
-# 3. TPS >= 18?
-TPS_OUTPUT=$(docker compose exec -T minecraft rcon-cli "spark health" 2>/dev/null || echo "")
-TPS=$(echo "$TPS_OUTPUT" | grep -oiP 'tps[^:]*:\s*\K[\d.]+' | head -1 || echo "0")
-if echo "$TPS" | awk '{exit ($1 >= 18.0) ? 0 : 1}'; then
+# 3. TPS >= 18? (parsed from server logs)
+echo -e "${DIM}  TPS: sampling (spark health via log)...${RESET}"
+TPS=$(get_tps || echo "0")
+if [ -z "$TPS" ]; then
+  TPS="0"
+fi
+if echo "$TPS" | awk '{exit ($1 >= 18.0) ? 0 : 1}' 2>/dev/null; then
   check "TPS healthy ($TPS / 20.0)" pass
 else
   check "TPS healthy ($TPS / 20.0)" fail
@@ -73,7 +78,7 @@ else
 fi
 
 # 5. Recent backup exists?
-LATEST=$(ls -1t backups/*.tar.gz 2>/dev/null | head -1)
+LATEST=$(find backups -name '*.tar.gz' 2>/dev/null | sort -r | head -1)
 if [ -n "$LATEST" ]; then
   BK_AGE=$(( ($(date +%s) - $(date -r "$LATEST" +%s)) / 3600 ))
   if [ "$BK_AGE" -le 48 ]; then
