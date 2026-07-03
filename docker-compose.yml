@@ -23,6 +23,8 @@ services:
     volumes:
       - ./minecraft/data:/data
       - ./minecraft/server.properties:/tmp/server.properties:ro
+      - ./minecraft/server-icon.png:/tmp/server-icon.png:ro
+      - ./minecraft/extra-mods.txt:/tmp/extra-mods.txt:ro
       - ./minecraft/setup.sh:/tmp/setup.sh:ro
     entrypoint: ["/bin/bash", "/tmp/setup.sh"]
 

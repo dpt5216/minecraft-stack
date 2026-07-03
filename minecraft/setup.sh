@@ -35,8 +35,18 @@ cd /data
 echo "[setup] Running NeoForge installer..."
 java -jar neoforge-*-installer.jar --installServer
 
-# Apply our tracked server.properties
+# Apply our tracked config files
 cp /tmp/server.properties /data/server.properties
+cp /tmp/server-icon.png /data/server-icon.png
+
+# Install extra server-side mods from URL list
+if [ -f /tmp/extra-mods.txt ]; then
+  echo "[setup] Downloading extra mods..."
+  grep -v '^#' /tmp/extra-mods.txt | grep -v '^$' | while read -r url; do
+    echo "[setup]   -> $url"
+    wget -q -P /data/mods "$url"
+  done
+fi
 
 chown -R 1000:1000 /data
 rm -rf /tmp/pack /tmp/pack.zip
