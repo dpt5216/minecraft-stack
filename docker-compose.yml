@@ -16,38 +16,63 @@ services:
     networks:
       - proxy-net
 
-  # --- Minecraft server (itzg + CurseForge auto-pull) ---
+      # --- One-shot setup: downloads + extracts + installs NeoForge ---
+  minecraft-setup:
+    image: eclipse-temurin:21
+    container_name: minecraft-setup
+    volumes:
+      - ./minecraft/data:/data
+      - ./minecraft/server.properties:/tmp/server.properties:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      if [ -f /data/run.sh ]; then
+        echo "[setup] Server already installed, skipping."
+        exit 0
+      fi
+      echo "[setup] Downloading server pack..."
+      apt-get update -qq && apt-get install -y -qq wget unzip
+      wget -q -O /tmp/pack.zip "https://mediafilez.forgecdn.net/files/7978/707/ATFG11%20v11.2.1hf%20Server%20Files.zip"
+      mkdir -p /tmp/pack
+      unzip -q -o /tmp/pack.zip -d /tmp/pack
+      # Find the folder containing the NeoForge installer
+      EXTRACTED_DIR=$$(find /tmp/pack -name "neoforge-*-installer.jar" -exec dirname {} \; | head -1)
+      if [ -n "$$EXTRACTED_DIR" ]; then
+        shopt -s dotglob
+        mv "$$EXTRACTED_DIR"/* /data/
+        shopt -u dotglob
+      else
+        echo "[setup] ERROR: Could not find NeoForge installer"
+        exit 1
+      fi
+      cd /data
+      echo "[setup] Running NeoForge installer..."
+      java -jar neoforge-*-installer.jar --installServer
+      # Apply our tracked server.properties
+      cp /tmp/server.properties /data/server.properties
+      chown -R 1000:1000 /data
+      rm -rf /tmp/pack /tmp/pack.zip
+      echo "[setup] Done!"
+
+  # --- Minecraft server ---
   minecraft:
     image: itzg/minecraft-server:java21
     container_name: minecraft-server
     restart: unless-stopped
     ports:
-      - "25565:25565"       # Java Edition
+      - "25565:25565"
     volumes:
       - ./minecraft/data:/data
     networks:
       - proxy-net
+    depends_on:
+      minecraft-setup:
+        condition: service_completed_successfully
     environment:
       EULA: "TRUE"
-      TYPE: "CURSEFORGE"
-      # Modpack: All the Forge by TeamAMPZ
-      CF_SERVER_MOD: "https://mediafilez.forgecdn.net/files/7978/707/ATFG11%20v11.2.1hf%20Server%20Files.zip"
+      TYPE: "CUSTOM"
+      CUSTOM_SERVER: "/data/run.sh"
       MEMORY: "16G"
-      # Let itzg handle server properties
-      OVERRIDE_SERVER_PROPERTIES: "TRUE"
-      SERVER_NAME: "Dean's Modded Minecraft Server"
-      MOTD: "§5§lDean's Modded Minecraft §r§d— All the Forge v11.2.1hf"
-      DIFFICULTY: "hard"
-      VIEW_DISTANCE: "12"
-      SIMULATION_DISTANCE: "8"
-      MAX_PLAYERS: "20"
-      ONLINE_MODE: "TRUE"
-      ALLOW_NETHER: "TRUE"
-      ALLOW_FLIGHT: "TRUE"
-      ENABLE_COMMAND_BLOCK: "FALSE"
-      # Whitelist & ops files persisted in /data
-      ENFORCE_WHITELIST: "FALSE"
-      # Java tuning for modded
+      # server.properties is managed manually — edit ./minecraft/data/server.properties
       USE_AIKAR_FLAGS: "TRUE"
       JVM_XX_OPTS: "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200"
     tty: true
