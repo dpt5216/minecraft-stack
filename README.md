@@ -1,0 +1,750 @@
+# Minecraft Server Stack — "All the Forge"
+
+A fully reproducible, Docker-based Minecraft server running the **All the Forge 11** modpack (v11.2.1hf) by TeamAMPZ on **NeoForge 21.1.219** for **Minecraft 1.21.1**. The stack is designed for zero-friction redeploys: wipe the data directory, run `docker compose up`, and the server rebuilds itself from scratch — no manual jar downloads, no API keys, no fragile `.env` parsing.
+
+---
+
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Directory Structure](#directory-structure)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Boot Sequence](#boot-sequence)
+- [Configuration](#configuration)
+  - [server.properties](#serverproperties)
+  - [server-icon.png](#server-iconpng)
+  - [Memory & JVM Tuning](#memory--jvm-tuning)
+  - [Environment Variables](#environment-variables)
+- [Extra Server-Side Mods](#extra-server-side-mods)
+- [Server Management](#server-management)
+  - [Console Access](#console-access)
+  - [RCON](#rcon)
+  - [Safe Shutdown](#safe-shutdown)
+  - [Ops & Whitelist](#ops--whitelist)
+- [Performance Tuning](#performance-tuning)
+  - [Chunk Pre-Generation](#chunk-pre-generation)
+  - [View & Simulation Distance](#view--simulation-distance)
+  - [Included Performance Mods](#included-performance-mods)
+- [Backups](#backups)
+- [Updating the Modpack](#updating-the-modpack)
+- [The Landing Page](#the-landing-page)
+- [Troubleshooting](#troubleshooting)
+- [Network](#network)
+
+---
+
+## Architecture
+
+```
+┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐
+│   Caddy      │     │  minecraft-setup    │     │   minecraft      │
+│  (reverse    │     │  (one-shot init)    │     │   (game server)  │
+│   proxy)     │     │                     │     │                  │
+│              │     │  1. downloads pack  │     │  TYPE: CUSTOM    │
+│  :80/:443    │     │  2. extracts files  │     │  runs /data/     │
+│  web + TLS   │     │  3. installs NeoF.  │──┬──│  run.sh          │
+│              │     │  4. copies config   │  │  │                  │
+└──────────────┘     │  5. downloads extra │  │  │  :25565          │
+                     │     mods            │  │  │  16 GB RAM       │
+                     └─────────────────────┘  │  └──────────────────┘
+                              │               │
+                              └─── ./minecraft/data (persistent volume)
+```
+
+### Three containers
+
+| Container | Image | Purpose | Lifecycle |
+|---|---|---|---|
+| **caddy** | `caddy:latest` | Reverse proxy with automatic HTTPS (Let's Encrypt) for the static landing page at `minecraft.dthasno.website` | Always running |
+| **minecraft-setup** | `eclipse-temurin:21` | One-shot init: downloads the server pack, installs NeoForge, applies tracked config, pulls extra mods | Runs once, exits successfully, skipped on subsequent boots |
+| **minecraft** | `itzg/minecraft-server:java21` | The game server. Waits for setup to finish, then runs `/data/run.sh` | Always running (restarts on crash) |
+
+### Why this design?
+
+The standard itzg CurseForge integration (`TYPE: CURSEFORGE` with `CF_SLUG` + `CF_API_KEY`) requires a CurseForge API key. API keys often contain `$` and other special characters that break Docker Compose's `.env` parsing, and the fallback mechanism (`CF_SERVER_MOD`) expects a pre-installed server, not a raw server pack zip with an installer jar.
+
+This stack sidesteps all of that by using a dedicated init container that:
+
+1. Downloads the **server pack zip** directly from CurseForge's CDN (no API key needed).
+2. Extracts it and locates the NeoForge installer.
+3. Runs `--installServer` to generate the actual server launcher (`run.sh`).
+4. Applies our tracked `server.properties`, `server-icon.png`, and extra mods.
+
+The main server then uses `TYPE: CUSTOM` with `CUSTOM_SERVER: /data/run.sh` — a clean, simple startup with no API dependency.
+
+---
+
+## Directory Structure
+
+```
+minecraft-stack/
+├── docker-compose.yml          # All services, volumes, networks
+├── Caddyfile                   # Reverse proxy config + TLS for the landing page
+├── .gitignore                  # Ignores data/, secrets, OS files
+├── README.md                   # This file
+├── env.example                 # Template for .env (optional; no API key required)
+├── site/                       # Static landing page served by Caddy
+│   ├── index.html              # Player-facing setup instructions
+│   └── img/                    # Screenshots and images
+│       ├── soy.png
+│       ├── cf0.png
+│       └── mc-address-prompt.png
+└── minecraft/
+    ├── setup.sh                # Init container script — the heart of the auto-setup
+    ├── server.properties       # Tracked server config (applied during setup)
+    ├── server-icon.png         # Tracked server list icon (64×64 PNG)
+    ├── extra-mods.txt          # Download URLs for extra server-side mods
+    └── data/                   # Runtime data (gitignored, persistent across restarts)
+        ├── run.sh              # Generated by NeoForge installer
+        ├── libraries/          # NeoForge runtime libraries
+        ├── mods/               # All mod jars (from pack + extra-mods.txt)
+        ├── config/             # Mod configuration files
+        ├── world/              # The actual Minecraft world
+        ├── server.properties   # Copied from tracked version during setup
+        ├── server-icon.png     # Copied from tracked version during setup
+        ├── ops.json            # Operator list
+        ├── whitelist.json      # Whitelist (if enabled)
+        └── logs/               # Server logs
+```
+
+Everything in `minecraft/` **except** `data/` is git-tracked. The `data/` directory is the persistent runtime state — it survives container restarts but is wiped during a full rebuild.
+
+---
+
+## Prerequisites
+
+### Host machine
+
+- **Linux server** (Ubuntu/Debian recommended) with:
+  - **Docker Engine** 24+ and **Docker Compose** v2
+  - **24 GB RAM** minimum (16 GB allocated to the JVM, 8 GB for the OS + overhead)
+  - **50 GB+ disk space** (server pack + world data + Docker images)
+  - **Open ports**: `25565` (Minecraft), `80` and `443` (web)
+
+### Install Docker if needed
+
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+### DNS
+
+Point an A record for `minecraft.dthasno.website` to your server's public IP. Caddy will automatically provision a TLS certificate via Let's Encrypt on first boot.
+
+---
+
+## Quick Start
+
+```bash
+# Clone the repo
+git clone <repo-url> minecraft-stack
+cd minecraft-stack
+
+# (Optional) Copy the env template — no API key is needed
+cp env.example .env
+
+# Start everything
+docker compose up -d
+```
+
+### What happens on first boot
+
+The `minecraft-setup` container starts and runs `setup.sh`, which takes **3–5 minutes**:
+
+1. Installs `wget` and `unzip` in the container.
+2. Downloads the ~240 MB server pack zip from CurseForge's CDN.
+3. Extracts it and finds the NeoForge installer directory.
+4. Cleans `/data` of any leftover files.
+5. Copies all server files (mods, config, installer jar) into `/data`.
+6. Runs `java -jar neoforge-*-installer.jar --installServer` — this downloads the NeoForge runtime and generates `run.sh`.
+7. Overwrites `server.properties` and `server-icon.png` with the tracked versions.
+8. Reads `extra-mods.txt` and downloads each listed mod jar into `/data/mods/`.
+9. Sets ownership to `1000:1000` (the itzg image's default user).
+
+The `minecraft` container waits for setup to complete, then starts the server.
+
+### Watch the progress
+
+```bash
+# Watch setup (first boot only)
+docker compose logs minecraft-setup -f
+
+# Once setup is done, watch the server start
+docker compose logs minecraft -f
+```
+
+You'll know the server is ready when you see:
+
+```
+[Server thread/INFO] [minecraft/MinecraftServer]: Done (X.XXXs)! For help, type "help"
+```
+
+### Subsequent boots
+
+On restart or reboot, the setup container sees `/data/run.sh` already exists, prints a skip message, and exits immediately. The server starts in seconds.
+
+---
+
+## Boot Sequence
+
+### Flow diagram
+
+```
+docker compose up -d
+        │
+        ├──► minecraft-setup starts
+        │         │
+        │         ├── /data/run.sh exists?
+        │         │     ├── YES → print skip message → exit 0
+        │         │     └── NO  → continue ↓
+        │         │
+        │         ├── apt-get install wget unzip
+        │         ├── wget server pack zip
+        │         ├── unzip → find neoforge-*-installer.jar
+        │         ├── rm -rf /data/*          (clean slate)
+        │         ├── cp -r extracted/* /data/ (copy server files)
+        │         ├── java -jar neoforge-installer.jar --installServer
+        │         ├── cp server.properties → /data/
+        │         ├── cp server-icon.png   → /data/
+        │         ├── wget each URL from extra-mods.txt → /data/mods/
+        │         ├── chown -R 1000:1000 /data
+        │         └── exit 0
+        │
+        ├──► minecraft starts (after setup exits successfully)
+        │         │
+        │         ├── itzg image runs /data/run.sh
+        │         ├── JVM launches with Aikar's flags + 16 GB heap
+        │         ├── NeoForge loads all mods from /data/mods/
+        │         └── Server listens on :25565
+        │
+        └──► caddy starts (independent)
+                  │
+                  ├── Provisions TLS cert from Let's Encrypt
+                  └── Serves site/ at https://minecraft.dthasno.website
+```
+
+### Idempotency
+
+The setup script's first line checks for `/data/run.sh`. If it exists, the script exits immediately. This means:
+
+- **`docker compose restart`** — setup is skipped, server restarts.
+- **`docker compose down && up`** — setup is skipped if data persists.
+- **`rm -rf minecraft/data/* && docker compose up`** — setup re-runs from scratch.
+
+### Wiping and rebuilding
+
+```bash
+docker compose down
+rm -rf minecraft/data/*
+docker compose up -d
+```
+
+> ⚠️ This deletes the world. See [Backups](#backups) if you want to preserve it.
+
+---
+
+## Configuration
+
+### server.properties
+
+The tracked `minecraft/server.properties` is copied into `/data/` during setup, overwriting whatever the modpack shipped with. This ensures your settings are consistent across rebuilds.
+
+**To change settings:**
+
+1. Edit `minecraft/server.properties` in the repo.
+2. Commit and push.
+3. Either wipe + redeploy (applies on next setup run), or apply live:
+
+```bash
+cp minecraft/server.properties minecraft/data/server.properties
+docker compose restart minecraft
+```
+
+**Full reference of tracked values:**
+
+| Property | Current Value | Notes |
+|---|---|---|
+| `motd` | `§5§lDean's Modded Minecraft §r§d— All the Forge v11.2.1hf` | Uses Minecraft color codes. `§5` = purple, `§l` = bold, `§r` = reset, `§d` = magenta |
+| `difficulty` | `hard` | Options: `peaceful`, `easy`, `normal`, `hard` |
+| `gamemode` | `survival` | Options: `survival`, `creative`, `adventure`, `spectator` |
+| `max-players` | `20` | Max concurrent players |
+| `view-distance` | `12` | Chunk radius sent to clients. Lower to 8 if lagging |
+| `simulation-distance` | `8` | Chunk radius for entity/tick simulation. Lower to 6 if lagging |
+| `online-mode` | `true` | Validates player against Mojang session servers. Set to `false` for cracked clients (not recommended) |
+| `allow-flight` | `true` | Required for many mods that use flight |
+| `allow-nether` | `true` | |
+| `enable-command-block` | `false` | Set to `true` if using command blocks |
+| `enforce-whitelist` | `false` | Set to `true` to require whitelisting |
+| `enable-rcon` | `false` | Set to `true` + set `rcon.password` for remote console |
+| `enable-query` | `true` | Allows server listing tools to query the server |
+| `pvp` | `true` | |
+| `spawn-protection` | `16` | Blocks within this radius of spawn can't be modified by non-ops |
+| `level-name` | `world` | The world folder name |
+| `level-type` | `default` | Use `flat` for superflat, `largeBiomes` for amplified biomes |
+
+### server-icon.png
+
+The icon shown next to the server in the multiplayer server list. Must be a **64×64 pixel PNG**. Replace `minecraft/server-icon.png` with your own image.
+
+Applied during setup, or apply live:
+
+```bash
+cp minecraft/server-icon.png minecraft/data/server-icon.png
+docker compose restart minecraft
+```
+
+### Memory & JVM Tuning
+
+Configured in `docker-compose.yml` under the `minecraft` service environment:
+
+```yaml
+MEMORY: "16G"
+USE_AIKAR_FLAGS: "TRUE"
+JVM_XX_OPTS: "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200"
+```
+
+**Aikar's flags** are the community-standard JVM tuning for Minecraft servers, optimized for GC pause times and throughput. The `MEMORY` variable sets both the initial (`-Xms`) and max (`-Xmx`) heap size.
+
+To adjust, edit `docker-compose.yml` and restart:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+**Recommended memory by player count:**
+
+| Players | RAM | Notes |
+|---|---|---|
+| 1–5 | 8 GB | Fine for small groups |
+| 5–15 | 12–16 GB | Current setting |
+| 15–30 | 16–24 GB | May need a beefier host |
+
+> ⚠️ Don't allocate more than ~75% of host RAM to the JVM — the OS, Docker, and Caddy need memory too. On a 24 GB host, 16 GB is the sweet spot.
+
+### Environment Variables
+
+All environment variables for the `minecraft` service:
+
+| Variable | Value | Purpose |
+|---|---|---|
+| `EULA` | `TRUE` | Accepts the Minecraft EULA (required) |
+| `TYPE` | `CUSTOM` | Tells itzg to use a custom launch script |
+| `CUSTOM_SERVER` | `/data/run.sh` | The script to execute to start the server |
+| `MEMORY` | `16G` | JVM heap size (sets both -Xms and -Xmx) |
+| `USE_AIKAR_FLAGS` | `TRUE` | Enables Aikar's optimized GC flags |
+| `JVM_XX_OPTS` | `-XX:+UseG1GC ...` | Additional JVM arguments (complements Aikar flags) |
+
+---
+
+## Extra Server-Side Mods
+
+The `minecraft/extra-mods.txt` file contains a list of direct-download URLs for server-side mods. These are downloaded into `/data/mods/` during setup — no binaries committed to git.
+
+### Format
+
+```
+# Comments start with # and are ignored
+# Blank lines are also ignored
+
+# One URL per line
+https://cdn.modrinth.com/data/.../mod-name.jar
+```
+
+### Currently included mods
+
+| Mod | Version | Purpose |
+|---|---|---|
+| **Chunky** | 1.4.23 | World pre-generation — eliminates chunk-gen lag |
+| **Lithium** | 0.15.3 | Optimizes game physics, mob AI, block tick scheduling |
+| **FerriteCore** | 7.0.3 | Reduces memory usage by optimizing object storage |
+| **ModernFix** | 5.26.1 | Improves load times, fixes performance bugs |
+| **AI Improvements** | 0.5.3 | Optimizes entity AI pathfinding and ticking |
+| **Spark** | 1.10.124 | In-game performance profiler (`/spark health`, `/spark profiler`) |
+
+### Adding a new mod
+
+1. Find the mod on [Modrinth](https://modrinth.com) or [CurseForge](https://www.curseforge.com).
+2. Make sure it's the **NeoForge** version for **1.21.1**.
+3. Copy the direct download URL (right-click the download button → copy link).
+4. Add it to `minecraft/extra-mods.txt`.
+5. Commit and push.
+
+### Installing on a running server (no wipe needed)
+
+```bash
+cd minecraft/data/mods
+wget -O ModName.jar "https://cdn.modrinth.com/.../ModName.jar"
+docker compose restart minecraft
+```
+
+Then add the URL to `extra-mods.txt` so it survives future wipes.
+
+### Removing a mod
+
+1. Delete the line from `minecraft/extra-mods.txt`.
+2. Delete the jar from `minecraft/data/mods/`.
+3. Restart: `docker compose restart minecraft`
+
+---
+
+## Server Management
+
+### Console Access
+
+```bash
+docker attach minecraft-server
+```
+
+This connects you to the server's stdin/stdout. You'll see live logs and can type commands directly:
+
+```
+say Server restarting in 5 minutes!
+whitelist add PlayerName
+op PlayerName
+stop
+```
+
+**To detach without stopping the server:** press **Ctrl+P, then Ctrl+Q**.
+
+> ⚠️ **Ctrl+C will kill the server.** Don't use it. Always use Ctrl+P, Ctrl+Q to detach.
+
+### RCON
+
+For a more convenient prompt with command history and tab-completion, enable RCON:
+
+1. Edit `minecraft/server.properties`:
+   ```properties
+   enable-rcon=true
+   rcon.password=your_secure_password
+   rcon.port=25575
+   ```
+2. Apply and restart:
+   ```bash
+   cp minecraft/server.properties minecraft/data/server.properties
+   docker compose restart minecraft
+   ```
+3. Connect:
+   ```bash
+   docker compose exec minecraft rcon-cli
+   ```
+
+### Safe Shutdown
+
+```bash
+# Option 1: Via console
+docker attach minecraft-server
+stop
+
+# Option 2: Via mc-send-to-console
+docker compose exec minecraft mc-send-to-console "stop"
+
+# Option 3: Via Docker (less graceful, but works)
+docker compose stop minecraft
+```
+
+Always use `stop` when possible — it saves the world cleanly. `docker compose stop` sends SIGTERM which the server handles, but `stop` is more explicit.
+
+### Ops & Whitelist
+
+**Make someone an operator:**
+
+```bash
+docker attach minecraft-server
+op PlayerName
+```
+
+Or edit `minecraft/data/ops.json` directly and restart.
+
+**Enable whitelist:**
+
+1. Edit `minecraft/server.properties`:
+   ```properties
+   enforce-whitelist=true
+   white-list=true
+   ```
+2. Apply and restart.
+3. Add players:
+   ```
+   whitelist add PlayerName
+   whitelist reload
+   ```
+
+The `ops.json` and `whitelist.json` files persist in `minecraft/data/` across restarts (but not across wipes — back them up if needed).
+
+---
+
+## Performance Tuning
+
+### Chunk Pre-Generation
+
+**This is the single most impactful performance fix for modded servers.** When a player explores into ungenerated territory, the server must generate new chunks in real-time, which causes lag spikes and rubberbanding. Pre-generating the world eliminates this entirely.
+
+After the server is running:
+
+```bash
+docker attach minecraft-server
+```
+
+Then run Chunky commands:
+
+```
+# Set a world border (optional, prevents players exploring beyond pre-gen)
+worldborder set 5000
+
+# Generate chunks within a 2500-block radius of spawn
+chunky radius 2500
+
+# Start generation (runs in background)
+chunky start
+
+# Check progress
+chunky progress
+
+# Pause if needed (server load too high)
+chunky pause
+
+# Resume
+chunky continue
+```
+
+**How long does it take?** A 2500-block radius is ~78 million blocks (196 million chunks). On a modded server with a 16 GB heap, expect **2–8 hours** depending on your CPU. The server remains fully playable during generation, though you may notice slight lag while it runs.
+
+**Tips:**
+- Run pre-gen during off-hours or while no players are online.
+- Start with a smaller radius (1000) if you want players on sooner.
+- Once complete, players exploring within the pre-generated area will experience zero chunk-generation lag.
+
+### View & Simulation Distance
+
+If rubberbanding persists even after pre-generation, lower these in `server.properties`:
+
+```properties
+view-distance=8
+simulation-distance=6
+```
+
+| Setting | Default | Recommended | Effect |
+|---|---|---|---|
+| `view-distance` | 12 | 8 | How far players can see. Each step roughly doubles chunk count |
+| `simulation-distance` | 8 | 6 | How far entities/Redstone are ticked. Lower = less CPU |
+
+Going from 12 to 8 reduces loaded chunks from **625 to 289** — a 54% reduction in per-player server load.
+
+### Included Performance Mods
+
+Several optimization mods are installed via `extra-mods.txt`:
+
+| Mod | What it does | In-game commands |
+|---|---|---|
+| **Lithium** | Rewrites game physics, mob AI, and block tick scheduling to be more efficient. No config needed. | None — passive |
+| **FerriteCore** | Reduces memory usage by optimizing how blocks, items, and entities are stored in RAM. | None — passive |
+| **ModernFix** | Speeds up server startup and fixes several performance bugs in vanilla code paths. | `/modernfix` |
+| **AI Improvements** | Optimizes entity AI: reduces unnecessary pathfinding, limits tick frequency for distant mobs. | Config file in `config/` |
+| **Spark** | Real-time profiler. Use to identify what's causing lag. | `/spark health` (quick report), `/spark profiler` (detailed profiling) |
+
+**Using Spark to diagnose lag:**
+
+```
+# In-game or console:
+spark health
+# Shows memory, GC, TPS, and mspt (milliseconds per tick)
+
+spark profiler --thread server
+# Runs a CPU profiler for 60 seconds, then gives you a web link
+# with a flame graph showing exactly what's consuming CPU
+```
+
+---
+
+## Backups
+
+### World backup
+
+The world data lives in `minecraft/data/world/`. To back it up:
+
+```bash
+# Stop the server first (clean save)
+docker compose exec minecraft mc-send-to-console "stop"
+
+# Wait for it to shut down, then:
+tar -czf world-backup-$(date +%Y%m%d).tar.gz minecraft/data/world/
+
+# Restart
+docker compose up -d
+```
+
+### Full data backup
+
+```bash
+docker compose down
+tar -czf full-backup-$(date +%Y%m%d).tar.gz minecraft/data/
+docker compose up -d
+```
+
+### Restore
+
+```bash
+docker compose down
+rm -rf minecraft/data/*
+tar -xzf world-backup-20250703.tar.gz -C .
+docker compose up -d
+```
+
+The setup container will see `/data/run.sh` was deleted and re-run setup, then your restored world will already be in place.
+
+> 💡 **Automated backups:** Consider setting up a cron job to run the world backup nightly. The server doesn't need to stop — a hot copy is usually fine for a small server, though a stopped server guarantees consistency.
+
+---
+
+## Updating the Modpack
+
+When TeamAMPZ releases a new version of "All the Forge":
+
+1. **Find the new server pack URL.**
+   - Go to [CurseForge files page](https://www.curseforge.com/minecraft/modpacks/all-the-forge/files)
+   - Filter by **"Server Pack"** type
+   - Find the version matching the new release
+   - Right-click the download button → copy link address
+   - It should look like `https://mediafilez.forgecdn.net/files/XXXX/XXX/...zip`
+
+2. **Update `minecraft/setup.sh`** with the new download URL:
+
+   ```bash
+   wget -q -O /tmp/pack.zip "https://mediafilez.forgecdn.net/files/XXXX/XXX/NewPack.zip"
+   ```
+
+3. **Update the MOTD** in `minecraft/server.properties` if the version changed:
+
+   ```properties
+   motd=§5§lDean's Modded Minecraft §r§d— All the Forge vXX.X.X
+   ```
+
+4. **Back up the world** (see [Backups](#backups)).
+
+5. **Wipe and redeploy:**
+
+   ```bash
+   docker compose down
+   rm -rf minecraft/data/*
+   docker compose up -d
+   docker compose logs minecraft-setup -f
+   ```
+
+6. **Restore the world** if you backed it up:
+
+   ```bash
+   # After setup completes but before players join:
+   cp -r world-backup/world minecraft/data/world
+   docker compose restart minecraft
+   ```
+
+7. **Update the landing page** in `site/index.html` with the new version number so players know which version to install.
+
+> ⚠️ Modpack updates may change mod configs, world generation, or block IDs. Always test on a copy of the world before committing.
+
+---
+
+## The Landing Page
+
+Caddy serves the static site in `site/` at `https://minecraft.dthasno.website`. This is a player-facing page with step-by-step instructions for:
+
+1. Installing CurseForge (with video tutorial)
+2. Installing the "All the Forge" modpack
+3. Launching the game and joining the server
+
+The Caddyfile is minimal — it just serves static files with gzip compression, security headers, and automatic TLS via Let's Encrypt. No backend, no database.
+
+To update the page, edit `site/index.html` and Caddy will serve it immediately (the volume is mounted read-only, so changes are live on next page load).
+
+---
+
+## Troubleshooting
+
+### Common errors
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `CF_SERVER_MOD is required` | Old compose file using API-based approach | Pull latest `docker-compose.yml` from this repo |
+| `mv: inter-device move failed` | Docker overlay + volume boundary issue | Fixed in current `setup.sh` (uses `cp -r` instead of `mv`) |
+| `syntax error: unexpected end of file` | YAML multiline string parsing issue | Fixed — setup now uses a separate `setup.sh` script mounted as a volume |
+| `Modpack missing start script` | Server pack has only the installer, not `run.sh` | Fixed — `setup.sh` runs `--installServer` to generate `run.sh` |
+| `Can't keep up! Running Xms behind` | Chunk generation lag on first player join | Pre-generate chunks with Chunky; lower view distance |
+| `moved too quickly!` | Server tick lag causing position desync | Fix the "Can't keep up!" issue (see [Performance Tuning](#performance-tuning)) |
+| Container exits with code 1 | Setup script failed | Check `docker compose logs minecraft-setup` for the error |
+| Container exits with code 2 | Server crashed during startup | Check `docker compose logs minecraft` for the stack trace |
+| `The "XXXX" variable is not set` | `.env` file has unescaped `$` characters | Escape `$$` in `.env` or hardcode values in `docker-compose.yml` |
+| Players can't connect | Firewall or DNS issue | Ensure port `25565` is open; check `minecraft.dthasno.website` resolves to your server IP |
+
+### Useful diagnostic commands
+
+```bash
+# Check container status
+docker compose ps
+
+# Check resource usage
+docker stats minecraft-server
+
+# View all logs
+docker compose logs
+
+# Inspect resolved compose config
+docker compose config
+
+# Check if the server is listening
+curl -s http://localhost:25565 | xxd | head -5
+```
+
+### Spark health check
+
+If the server is running slowly, attach to the console and run:
+
+```
+spark health
+```
+
+This shows:
+- **TPS** (ticks per second) — should be 20.0; lower means lag
+- **MSPT** (milliseconds per tick) — should be under 50ms
+- **Memory usage** — should stay below 80% of allocated
+- **GC pauses** — should be infrequent and short
+
+If MSPT is high, run `spark profiler` to get a detailed flame graph showing exactly which mod or code path is consuming CPU.
+
+---
+
+## Network
+
+### Port mapping
+
+| Port | Protocol | Service | Purpose |
+|---|---|---|---|
+| 25565 | TCP | minecraft | Java Edition game traffic |
+| 80 | TCP | caddy | HTTP → redirects to HTTPS |
+| 443 | TCP/UDP | caddy | HTTPS (TLS) + HTTP/3 (QUIC) |
+
+### Firewall configuration
+
+```bash
+# UFW (Ubuntu/Debian)
+ufw allow 25565/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw allow 443/udp
+
+# Cloud provider: also check security group / firewall rules in your
+# provider's dashboard (AWS, Hetzner, DigitalOcean, etc.)
+```
+
+### DNS
+
+| Record | Type | Value |
+|---|---|---|
+| `minecraft.dthasno.website` | A | Your server's public IP |
+
+Caddy automatically provisions and renews the TLS certificate via Let's Encrypt. No manual certificate management needed.
+
+### Internal networking
+
+Both `caddy` and `minecraft` are on the `proxy-net` bridge network. The `minecraft-setup` container is not on any network — it doesn't need one since it only downloads from the internet.
