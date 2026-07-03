@@ -740,6 +740,94 @@ To update the page, edit `site/index.html` and Caddy will serve it immediately (
 
 ---
 
+## Maintenance & Monitoring
+
+### Scheduled routines (cron)
+
+Set up a crontab on the host for automated maintenance:
+
+```bash
+crontab -e
+```
+
+Recommended schedule:
+
+```cron
+# === Daily ===
+# Nightly world backup at 4am, keep last 7
+0 4 * * * /path/to/minecraft-stack/scripts/backup.sh --keep 7 >> /path/to/backups/cron.log 2>&1
+
+# Disk space check at 6am
+0 6 * * * /path/to/minecraft-stack/scripts/disk-check.sh >> /path/to/logs/cron.log 2>&1
+
+# Daily Discord status report at 8am
+0 8 * * * /path/to/minecraft-stack/scripts/daily-report.sh
+
+# === Hourly ===
+# Health snapshot to log file (TPS trend over time)
+0 * * * * /path/to/minecraft-stack/scripts/status.sh --oneline >> /path/to/logs/health.log 2>&1
+
+# Error scan (last hour of logs)
+30 * * * * /path/to/minecraft-stack/scripts/error-scan.sh
+
+# === Every 5 minutes ===
+# Crash detection (container restart monitoring)
+*/5 * * * * /path/to/minecraft-stack/scripts/crash-watch.sh
+
+# === Weekly ===
+# Full data backup Sunday 5am, keep last 3
+0 5 * * 0 /path/to/minecraft-stack/scripts/backup.sh --full --keep 3
+```
+
+Replace `/path/to/minecraft-stack` with your actual repo path.
+
+### Continuous monitoring (tmux)
+
+Run these manually in a tmux pane while playing or testing:
+
+```bash
+# Real-time TPS monitor (green/yellow/red, updates every 5s)
+./scripts/tps-watch.sh
+
+# Filtered log watcher (errors/warnings only, no chunk-load spam)
+./scripts/log-watch.sh
+```
+
+### On-demand scripts
+
+```bash
+# One-shot server health overview (TPS, memory, disk, players, logs)
+./scripts/status.sh
+
+# Disk space and world size check
+./scripts/disk-check.sh
+
+# Pre-flight check before a player session (pass/fail summary)
+./scripts/pre-flight.sh
+
+# List installed mods, flag duplicates, show tracked vs pack
+./scripts/mod-audit.sh
+```
+
+### Discord notifications
+
+Scripts can push alerts to a Discord channel via webhook. See
+`ignored/discord-hooks.md` for full setup. The short version:
+
+1. Create a webhook in your Discord channel settings.
+2. Add `DISCORD_WEBHOOK=https://discord.com/api/webhooks/...` to `.env`.
+3. Scripts that source `scripts/notify.sh` will automatically send
+   alerts for errors, crashes, and failures.
+
+Scripts with Discord hooks built in:
+- `crash-watch.sh` -- red alert on unexpected container restart
+- `error-scan.sh` -- orange alert when new log errors are detected
+- `backup.sh` / `restore.sh` -- green on success, red on failure
+- `pre-flight.sh` -- orange if any check fails
+- `daily-report.sh` -- morning status embed
+
+---
+
 ## Troubleshooting
 
 ### Common errors

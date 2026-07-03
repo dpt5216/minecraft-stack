@@ -14,3 +14,4 @@ Thumbs.db
 # Local review/scratch output
 ignored/
 backups/
+logs/
