@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# mod-audit.sh — list installed mods, flag duplicates, show tracked vs pack
+# mod-audit.sh — list installed mods, flag duplicates, show tracked vs untracked
 #
 # Usage:
 #   ./scripts/mod-audit.sh
@@ -26,45 +26,51 @@ if [ -z "$INSTALLED" ]; then
   exit 1
 fi
 
-# Get tracked mod filenames from extra-mods.txt
-TRACKED=$(grep -v '^#' minecraft/extra-mods.txt 2>/dev/null | grep -v '^$' | while read -r url; do
-  filename=$(basename "$url")
-  filename=$(printf '%b' "${filename//%/\\x}")
-  echo "$filename"
-done)
+# Get tracked mod filenames from all URL lists
+extract_filenames() {
+  local file="$1"
+  grep -v '^#' "$file" 2>/dev/null | grep -v '^$' | while read -r url; do
+    filename=$(basename "$url")
+    filename=$(printf '%b' "${filename//%/\\x}")
+    echo "$filename"
+  done
+}
+
+DEANPAC_TRACKED=$(extract_filenames minecraft/deanpac-mods.txt 2>/dev/null || echo "")
+EXTRA_TRACKED=$(extract_filenames minecraft/extra-mods.txt 2>/dev/null || echo "")
+ALL_TRACKED=$(printf '%s\n' "$DEANPAC_TRACKED" "$EXTRA_TRACKED")
 
 INSTALLED_COUNT=$(echo "$INSTALLED" | grep -c '\.jar' || echo 0)
-TRACKED_COUNT=$(echo "$TRACKED" | grep -c '\.jar' || echo 0)
+DEANPAC_COUNT=$(echo "$DEANPAC_TRACKED" | grep -c '\.jar' || echo 0)
+EXTRA_COUNT=$(echo "$EXTRA_TRACKED" | grep -c '\.jar' || echo 0)
 
-echo -e "  Installed jars: ${BOLD}${INSTALLED_COUNT}${RESET}"
-echo -e "  Tracked in extra-mods.txt: ${BOLD}${TRACKED_COUNT}${RESET}"
+echo -e "  Installed jars:       ${BOLD}${INSTALLED_COUNT}${RESET}"
+echo -e "  Tracked in DeanPAC:   ${BOLD}${DEANPAC_COUNT}${RESET}"
+echo -e "  Tracked in extra:     ${BOLD}${EXTRA_COUNT}${RESET}"
 echo ""
 
-# Section 1: Tracked extra mods
-echo -e "${CYAN}${BOLD}--- Tracked Extra Mods (from extra-mods.txt) ---${RESET}"
+# Section 1: DeanPAC mods
+echo -e "${CYAN}${BOLD}--- DeanPAC Mods (from deanpac-mods.txt) ---${RESET}"
 echo "$INSTALLED" | grep '\.jar' | while read -r jar; do
-  if echo "$TRACKED" | grep -qiF "$jar"; then
+  if echo "$DEANPAC_TRACKED" | grep -qiF "$jar"; then
     echo -e "  ${GREEN}✓${RESET} $jar"
   fi
 done
 echo ""
 
-# Section 2: Pack mods (installed but not in extra-mods.txt)
-echo -e "${CYAN}${BOLD}--- Pack Mods (from modpack, not tracked) ---${RESET}"
-PACK_COUNT=0
+# Section 2: Extra mods
+echo -e "${CYAN}${BOLD}--- Extra Server-Side Mods (from extra-mods.txt) ---${RESET}"
 echo "$INSTALLED" | grep '\.jar' | while read -r jar; do
-  if ! echo "$TRACKED" | grep -qiF "$jar"; then
-    echo -e "  ${DIM}$jar${RESET}"
-    PACK_COUNT=$((PACK_COUNT + 1))
+  if echo "$EXTRA_TRACKED" | grep -qiF "$jar"; then
+    echo -e "  ${GREEN}✓${RESET} $jar"
   fi
 done
-echo -e "  ${DIM}($PACK_COUNT pack mods)${RESET}"
 echo ""
 
 # Section 3: Tracked but not installed (should have been downloaded)
 echo -e "${CYAN}${BOLD}--- Tracked but Missing ---${RESET}"
 MISSING=0
-echo "$TRACKED" | while read -r jar; do
+echo "$ALL_TRACKED" | while read -r jar; do
   if [ -n "$jar" ] && ! echo "$INSTALLED" | grep -qiF "$jar"; then
     echo -e "  ${RED}✗ $jar${RESET}"
     MISSING=1
@@ -75,7 +81,19 @@ if [ "$MISSING" -eq 0 ] 2>/dev/null; then
 fi
 echo ""
 
-# Section 4: Duplicate detection (same base name, different version)
+# Section 4: Untracked (installed but not in any URL list)
+echo -e "${CYAN}${BOLD}--- Untracked (not in any URL list) ---${RESET}"
+UNTRACKED_COUNT=0
+echo "$INSTALLED" | grep '\.jar' | while read -r jar; do
+  if ! echo "$ALL_TRACKED" | grep -qiF "$jar"; then
+    echo -e "  ${YELLOW}?${RESET} $jar"
+    UNTRACKED_COUNT=$((UNTRACKED_COUNT + 1))
+  fi
+done
+echo -e "  ${DIM}($UNTRACKED_COUNT untracked)${RESET}"
+echo ""
+
+# Section 5: Duplicate detection (same base name, different version)
 echo -e "${CYAN}${BOLD}--- Potential Duplicates ---${RESET}"
 # Extract base name (strip version numbers and extensions)
 echo "$INSTALLED" | grep '\.jar' | sed 's/-[0-9].*\.jar//' | sed 's/_[0-9].*\.jar//' | sort | uniq -d | while read -r base; do

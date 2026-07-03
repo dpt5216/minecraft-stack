@@ -1,0 +1,10 @@
+# DeanPAC v1.7 server-side datapacks
+# Generated from minecraftinstance.json on 2026-07-03
+# 6 datapacks, downloaded into /data/world/datapacks/
+
+https://edge.forgecdn.net/files/6850/945/WrencheablePlanes2.0.zip
+https://edge.forgecdn.net/files/8073/520/CreateRubberworks_Compat_v1.zip
+https://edge.forgecdn.net/files/7537/707/Create_Easy_Stone_Generators_%20No_Obsidian_Gen.zip
+https://edge.forgecdn.net/files/8026/733/aoc_data_1.21_v4.zip
+https://edge.forgecdn.net/files/7586/38/no_dnd_diamond_1.21.zip
+https://edge.forgecdn.net/files/7585/727/charcoal_to_coal_1.21.zip

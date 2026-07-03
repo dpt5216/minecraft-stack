@@ -231,7 +231,7 @@ emit "${CYAN}[3] mod-audit.sh deep check${RESET}"
 MOD_OUTPUT=$(timeout --kill-after=5 30 ./scripts/mod-audit.sh 2>&1) || true
 echo "$MOD_OUTPUT" | grep -qi "Installed jars:" && verify "shows jar count" "echo '$MOD_OUTPUT' | grep -qi 'Installed jars:'" || true
 echo "$MOD_OUTPUT" | grep -qi "Tracked Extra Mods" && verify "shows tracked section" "echo '$MOD_OUTPUT' | grep -qi 'Tracked Extra Mods'" || true
-echo "$MOD_OUTPUT" | grep -qi "Pack Mods" && verify "shows pack section" "echo '$MOD_OUTPUT' | grep -qi 'Pack Mods'" || true
+echo "$MOD_OUTPUT" | grep -qi "DeanPAC Mods" && verify "shows DeanPAC section" "echo '$MOD_OUTPUT' | grep -qi 'DeanPAC Mods'" || true
 
 run_test "pre-flight.sh runs all checks" "./scripts/pre-flight.sh; test \$? -eq 0 || test \$? -eq 1" 30
 emit ""

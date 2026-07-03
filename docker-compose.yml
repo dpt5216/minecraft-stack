@@ -15,7 +15,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
-  # --- One-shot setup: downloads + extracts + installs NeoForge ---
+  # --- One-shot setup: downloads NeoForge + mods + copies configs ---
   minecraft-setup:
     image: eclipse-temurin:21
     container_name: minecraft-setup
@@ -23,7 +23,10 @@ services:
       - ./minecraft/data:/data
       - ./minecraft/server.properties:/tmp/server.properties:ro
       - ./minecraft/server-icon.png:/tmp/server-icon.png:ro
+      - ./minecraft/deanpac-mods.txt:/tmp/deanpac-mods.txt:ro
+      - ./minecraft/deanpac-datapacks.txt:/tmp/deanpac-datapacks.txt:ro
       - ./minecraft/extra-mods.txt:/tmp/extra-mods.txt:ro
+      - ./minecraft/configs:/deanpac-config:ro
       - ./minecraft/setup.sh:/tmp/setup.sh:ro
     entrypoint: ["/bin/bash", "/tmp/setup.sh"]
 

@@ -1,0 +1,194 @@
+{
+	/* 
+	   
+	   ***********************
+	   Full Tool Damage
+	   - effects hammer/excavator/treeaxe
+	   ***********************
+	*/
+	"enableFullDamage": false,
+	/* 
+	   
+	   
+	   ******************************
+	   Bow Zoom Multiplier
+	   - vanilla bow value = .15F
+	   - pretty good value = .45F
+	   - awesome value = .75F
+	   ******************************
+	*/
+	"bowZoomMultiplier": 0.44999998807907104,
+	/* 
+	   
+	   
+	   ******************************
+	   Global Bow Settings
+	   ******************************
+	*/
+	"projectileSpeed": 4.0,
+	"projectileDivergence": 0.0,
+	"projectileCriticalHit": false,
+	/* 
+	   
+	   
+	   ******************************
+	   Vanilla Material Settings
+	   - for Axe and Paxels
+	   ******************************
+	*/
+	"woodenAxeAttackDamage": 6.0,
+	"goldAxeAttackDamage": 6.0,
+	"ironAxeAttackDamage": 6.0,
+	"diamondAxeAttackDamage": 5.0,
+	"netheriteAxeAttackDamage": 5.0,
+	/* 
+	   
+	   
+	   ******************************
+	   Armor Perks
+	   ******************************
+	*/
+	"amethystNoFallDamage": false,
+	"rubyFireProtection": false,
+	"emeraldWaterBreathing": false,
+	/* 
+	   
+	   
+	   ******************************
+	   AMETHYST TOOL MATERIAL
+	   ******************************
+	*/
+	"amethystDurability": 840,
+	"amethystMiningSpeed": 8.0,
+	"amethystAttackDamage": 1.5,
+	"amethystSwordAttackDamage": 3,
+	"amethystAxeAttackDamage": 5,
+	"amethystEnchantability": 25,
+	/* 
+	   
+	   
+	   ******************************
+	   AMETHYST ARMOR MATERIAL
+	   ******************************
+	*/
+	"amethystDurabilityMultiplier": 29,
+	"amethystArmorEnchantability": 10,
+	"amethystToughness": 2.0,
+	"amethystKnockbackResistance": 0.5,
+	"amethystHelmetProtection": 3,
+	"amethystChestProtection": 8,
+	"amethystLeggingsProtection": 6,
+	"amethystBootsProtection": 3,
+	/* 
+	   
+	   
+	   ******************************
+	   COPPER TOOL MATERIAL
+	   ******************************
+	*/
+	"copperDurability": 250,
+	"copperMiningSpeed": 5.5,
+	"copperAttackDamage": 1.5,
+	"copperSwordAttackDamage": 3,
+	"copperAxeAttackDamage": 6,
+	"copperEnchantability": 18,
+	/* 
+	   
+	   
+	   ******************************
+	   COPPER ARMOR MATERIAL
+	   ******************************
+	*/
+	"copperDurabilityMultiplier": 24,
+	"copperArmorEnchantability": 4,
+	"copperToughness": 0.0,
+	"copperKnockbackResistance": 0.0,
+	"copperHelmetProtection": 2,
+	"copperChestProtection": 6,
+	"copperLeggingsProtection": 5,
+	"copperBootsProtection": 2,
+	/* 
+	   
+	   
+	   ******************************
+	   EMERALD TOOL MATERIAL
+	   ******************************
+	*/
+	"emeraldDurability": 725,
+	"emeraldtMiningSpeed": 8.0,
+	"emeraldAttackDamage": 3.0,
+	"emeraldSwordAttackDamage": 3,
+	"emeraldAxeAttackDamage": 5,
+	"emeraldEnchantability": 10,
+	/* 
+	   
+	   
+	   ******************************
+	   EMERALD ARMOR MATERIAL
+	   ******************************
+	*/
+	"emeraldDurabilityMultiplier": 26,
+	"emeraldArmorEnchantability": 12,
+	"emeraldToughness": 2.0,
+	"emeraldKnockbackResistance": 0.0,
+	"emeraldHelmetProtection": 3,
+	"emeraldChestProtection": 8,
+	"emeraldLeggingsProtection": 6,
+	"emeraldBootsProtection": 3,
+	/* 
+	   
+	   
+	   ******************************
+	   RUBY TOOL MATERIAL
+	   ******************************
+	*/
+	"rubyDurability": 960,
+	"rubyMiningSpeed": 8.0,
+	"rubyAttackDamage": 3.0,
+	"rubySwordAttackDamage": 3,
+	"rubyAxeAttackDamage": 5,
+	"rubyEnchantability": 10,
+	/* 
+	   
+	   
+	   ******************************
+	   RUBY ARMOR MATERIAL
+	   ******************************
+	*/
+	"rubyDurabilityMultiplier": 29,
+	"rubyArmorEnchantability": 12,
+	"rubyToughness": 2.0,
+	"rubyKnockbackResistance": 0.0,
+	"rubyHelmetProtection": 3,
+	"rubyChestProtection": 8,
+	"rubyLeggingsProtection": 6,
+	"rubyBootsProtection": 3,
+	/* 
+	   
+	   
+	   ******************************
+	   OBSIDIAN TOOL MATERIAL
+	   ******************************
+	*/
+	"obsidianDurability": 650,
+	"obsidianMiningSpeed": 5.5,
+	"obsidianAttackDamage": 1.5,
+	"obsidianSwordAttackDamage": 3,
+	"obsidianAxeAttackDamage": 6,
+	"obsidianEnchantability": 4,
+	/* 
+	   
+	   
+	   ******************************
+	   OBSIDIAN ARMOR MATERIAL
+	   ******************************
+	*/
+	"obsidianDurabilityMultiplier": 24,
+	"obsidianArmorEnchantability": 4,
+	"obsidianToughness": 0.0,
+	"obsidianKnockbackResistance": 0.0,
+	"obsidianHelmetProtection": 2,
+	"obsidianChestProtection": 6,
+	"obsidianLeggingsProtection": 5,
+	"obsidianBootsProtection": 2
+}
