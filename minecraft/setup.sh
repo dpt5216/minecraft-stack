@@ -7,6 +7,7 @@ if [ -f /data/run.sh ]; then
 fi
 
 echo "[setup] Downloading server pack..."
+export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq && apt-get install -y -qq wget unzip
 
 wget -q -O /tmp/pack.zip "https://mediafilez.forgecdn.net/files/7978/707/ATFG11%20v11.2.1hf%20Server%20Files.zip"
@@ -15,14 +16,20 @@ unzip -q -o /tmp/pack.zip -d /tmp/pack
 
 # Find the folder containing the NeoForge installer
 EXTRACTED_DIR=$(find /tmp/pack -name "neoforge-*-installer.jar" -exec dirname {} \; | head -1)
-if [ -n "$EXTRACTED_DIR" ]; then
-  shopt -s dotglob
-  mv "$EXTRACTED_DIR"/* /data/
-  shopt -u dotglob
-else
+if [ -z "$EXTRACTED_DIR" ]; then
   echo "[setup] ERROR: Could not find NeoForge installer"
   exit 1
 fi
+
+# Clean /data of any previous partial extraction
+echo "[setup] Cleaning /data..."
+rm -rf /data/* /data/.[!.]* /data/..?*
+
+# Copy files (cp handles cross-filesystem, unlike mv)
+echo "[setup] Copying server files..."
+shopt -s dotglob
+cp -r "$EXTRACTED_DIR"/* /data/
+shopt -u dotglob
 
 cd /data
 echo "[setup] Running NeoForge installer..."
