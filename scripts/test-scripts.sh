@@ -80,7 +80,7 @@ run_test() {
   local start=$(date +%s%N)
   local exit_code=0
 
-  timeout "$timeout_s" bash -c "$cmd" > "$tmp_out" 2> "$tmp_err" || exit_code=$?
+  timeout --kill-after=5 "$timeout_s" bash -c "$cmd" < /dev/null > "$tmp_out" 2> "$tmp_err" || exit_code=$?
 
   local end=$(date +%s%N)
   local elapsed_ms=$(( (end - start) / 1000000 ))
@@ -208,7 +208,7 @@ run_stage "3" "Script Behavior Against Live Server"
 
 emit ""
 emit "${CYAN}[3] status.sh deep check${RESET}"
-STATUS_OUTPUT=$(./scripts/status.sh 2>&1) || true
+STATUS_OUTPUT=$(timeout --kill-after=5 30 ./scripts/status.sh 2>&1) || true
 echo "$STATUS_OUTPUT" | grep -q "Container:" && verify "shows container status" "echo '$STATUS_OUTPUT' | grep -q 'Container:'" || true
 echo "$STATUS_OUTPUT" | grep -q "Players:" && verify "shows player count" "echo '$STATUS_OUTPUT' | grep -q 'Players:'" || true
 echo "$STATUS_OUTPUT" | grep -q "TPS:" && verify "shows TPS" "echo '$STATUS_OUTPUT' | grep -q 'TPS:'" || true
@@ -217,7 +217,7 @@ echo "$STATUS_OUTPUT" | grep -q "Disk:" && verify "shows disk" "echo '$STATUS_OU
 
 emit ""
 emit "${CYAN}[3] disk-check.sh deep check${RESET}"
-DISK_OUTPUT=$(./scripts/disk-check.sh 2>&1) || true
+DISK_OUTPUT=$(timeout --kill-after=5 30 ./scripts/disk-check.sh 2>&1) || true
 echo "$DISK_OUTPUT" | grep -qi "free space" && verify "shows free space" "echo '$DISK_OUTPUT' | grep -qi 'free space'" || true
 echo "$DISK_OUTPUT" | grep -qi "minecraft/data" && verify "shows data dir size" "echo '$DISK_OUTPUT' | grep -qi 'minecraft/data'" || true
 echo "$DISK_OUTPUT" | grep -qi "world/" && verify "shows world size" "echo '$DISK_OUTPUT' | grep -qi 'world/'" || true
@@ -228,7 +228,7 @@ run_test "log-watch.sh --since 5s (bounded)" "timeout 10 ./scripts/log-watch.sh 
 run_test "mod-audit.sh lists installed mods" "./scripts/mod-audit.sh" 20
 emit ""
 emit "${CYAN}[3] mod-audit.sh deep check${RESET}"
-MOD_OUTPUT=$(./scripts/mod-audit.sh 2>&1) || true
+MOD_OUTPUT=$(timeout --kill-after=5 30 ./scripts/mod-audit.sh 2>&1) || true
 echo "$MOD_OUTPUT" | grep -qi "Installed jars:" && verify "shows jar count" "echo '$MOD_OUTPUT' | grep -qi 'Installed jars:'" || true
 echo "$MOD_OUTPUT" | grep -qi "Tracked Extra Mods" && verify "shows tracked section" "echo '$MOD_OUTPUT' | grep -qi 'Tracked Extra Mods'" || true
 echo "$MOD_OUTPUT" | grep -qi "Pack Mods" && verify "shows pack section" "echo '$MOD_OUTPUT' | grep -qi 'Pack Mods'" || true
@@ -236,7 +236,7 @@ echo "$MOD_OUTPUT" | grep -qi "Pack Mods" && verify "shows pack section" "echo '
 run_test "pre-flight.sh runs all checks" "./scripts/pre-flight.sh; test \$? -eq 0 || test \$? -eq 1" 30
 emit ""
 emit "${CYAN}[3] pre-flight.sh deep check${RESET}"
-PF_OUTPUT=$(./scripts/pre-flight.sh 2>&1) || true
+PF_OUTPUT=$(timeout --kill-after=5 30 ./scripts/pre-flight.sh 2>&1) || true
 echo "$PF_OUTPUT" | grep -qi "container running" && verify "checks container" "echo '$PF_OUTPUT' | grep -qi 'container running'" || true
 echo "$PF_OUTPUT" | grep -qi "RCON" && verify "checks RCON" "echo '$PF_OUTPUT' | grep -qi 'RCON'" || true
 echo "$PF_OUTPUT" | grep -qi "TPS" && verify "checks TPS" "echo '$PF_OUTPUT' | grep -qi 'TPS'" || true

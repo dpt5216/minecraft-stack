@@ -15,7 +15,7 @@ if [[ "${1:-}" == "--oneline" ]]; then
 fi
 
 rcon() {
-  docker compose exec -T minecraft rcon-cli "$@" 2>/dev/null || echo ""
+  timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "$@" < /dev/null 2>/dev/null || echo ""
 }
 
 # Check if server is running

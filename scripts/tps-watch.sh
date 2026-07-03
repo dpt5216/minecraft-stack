@@ -24,7 +24,7 @@ DIM='\033[2m'
 RESET='\033[0m'
 
 rcon() {
-  docker compose exec -T minecraft rcon-cli "$@" 2>/dev/null || echo ""
+  timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "$@" < /dev/null 2>/dev/null || echo ""
 }
 
 echo -e "${CYAN}${BOLD}[tps-watch]${RESET} Monitoring TPS every ${INTERVAL}s (Ctrl+C to stop)"

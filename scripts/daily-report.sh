@@ -21,7 +21,7 @@ WEBHOOK="${DISCORD_WEBHOOK:-}"
 [ -z "$WEBHOOK" ] && exit 0
 
 rcon() {
-  docker compose exec -T minecraft rcon-cli "$@" 2>/dev/null || echo ""
+  timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "$@" < /dev/null 2>/dev/null || echo ""
 }
 
 PLAYERS=$(rcon "list" | grep -oP '\d+/' | tr -d '/' || echo "0")
