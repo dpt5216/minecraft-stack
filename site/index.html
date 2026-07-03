@@ -37,7 +37,7 @@
             <h2>Install Curseforge</h2>
         </div>
         <div class="split-container">
-            <div class="split-left split-50">
+            <div class="split-left split-50 flex-column">
                 <p>
                     First you'll need to install <a href="https://www.curseforge.com/download/app">Curseforge</a>, a 3rd party modpack manager. See the video on the right for instructions.
                 </p>
@@ -45,7 +45,7 @@
                     You'll need to log into the app with a Google, Twitch, Discord, or Github account. It shouldn't matter what you use.
                 </p>
             </div>
-            <div class="split-right split-50">
+            <div class="split-right split-50 flex-column">
                 <iframe class="youtube" src="https://www.youtube.com/embed/BMBM3RE0EyY" title="How To Install CurseForge For Mods &amp; Modpacks - Full Guide" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>></iframe>
             </div>
             
@@ -61,21 +61,21 @@
         <div class="split-container">
 
 
-            <div class="split-left split-50">
+            <div class="split-left split-50 flex-column">
                 <img class="web-image" src="./img/cf0.png">
             </div>
-            <div class="split-right split-50">
+            <div class="split-right split-50 flex-column">
                 <p>
                     Now that you have Curseforge, you'll want to install the actual modpack "All the Forge"
                 </p>
                 <p>
-                    In curseforge, select Minecraft and navigate to the "Browse" tab and then search "All the Forge". The one you want is simply "All the Forge" by TeamAMPZ.
+                    In curseforge, select Minecraft and navigate to the "Browse" tab and then search "All the Forge". The one you want is simply <a href="https://www.curseforge.com/minecraft/modpacks/all-the-forge">"All the Forge" by TeamAMPZ</a>.
                 </p>
                 <p>
                     Click install, and then if there is a popup asking whether you want to create a new profile or add to an existing, click "Create new profile". A new profile for the modpack should show in the "My Modpacks" tab
                 </p>
                 <p>
-                    After the install, navigate to "My Modpacks" and double check the version. The modpack version should be <b>"All The Forge-v11.2.1hf"</b> running Minecraft version <b>1.21.1</b>.
+                    After the install, navigate to "My Modpacks" and double check the version. The modpack version should be <u>"All The Forge-v11.2.1hf"</u> running Minecraft version <u>1.21.1</u>.
                 </p>
             </div>
             
@@ -84,33 +84,14 @@
                 <br/>
         <hr/>
         <!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
-
-        <div class="section-header">
-            <h2>(Optional) Install Distant Horizons</h2>
-        </div>
-
-        <div class="split-container">
-            <div class="split-left split-50">
-                <img class="web-image" src="./img/distant-horizons.png">
-            </div>
-            <div class="split-right split-50">
-                <p>
-                    For a better visual experience, you can optionally install the Distant Horizons mod which massively increases the render distance.
-                </p>
-                <p>
-                    Download it from <a href="https://www.curseforge.com/minecraft/mc-mods/distant-horizons">Curseforge</a> and add the <code>.jar</code> file to your mods folder.
-                </p>
-            </div>
-        </div>
-
-        <br/>
-        <hr/>
-        <!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
         <div class="section-header">
             <h2>Launch Game and Join Server</h2>
         </div>
         <div class="split-container">
-            <div class="split-left split-50">
+            <div class="split-left split-50 flex-column">
+                <img class="web-image" src="./img/mc-address-prompt.png"/>
+            </div>
+            <div class="split-right split-50 flex-column">
                 <p>
                     You should now have everything you need to play!
                 </p>
@@ -121,10 +102,51 @@
                     Use the "minecraft.dthasno.website" as the server address.
                 </p>
             </div>
-            <div class="split-right split-50">
-                <img class="web-image" src="./img/mc-address-prompt.png"/>
+        </div>
+        <hr/>
+        <!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+
+        <div class="section-header">
+            <h2>(Optional) Install Distant Horizons</h2>
+        </div>
+       
+        <div class="split-container">
+            <div class="split-left split-50 flex-column">
+                 <p>
+                    Distant Horizons is an optional client-side mod that boosts your render distance. 
+                    The mod keeps track of terrain you have explored and keeps it visible even if it's beyond
+                    the server's render distance. You wont see chunk updates unless you're within the server's 
+                    render distance, but its a nice visual touch.
+                </p>
+                <p>
+                    To install, first download the .jar file from <a href="https://www.curseforge.com/minecraft/mc-mods/distant-horizons">the Curseforge website</a>. 
+                    Be sure to select the Minecraft 1.21.1 version for NeoForge.
+                </p>
+            </div>
+            <div class="split-right split-50 flex-column">
+                <img class="web-image" src="./img/dh-download.png">
             </div>
         </div>
+
+        <div class="split-container">
+            <div class="split-left split-50">
+                
+                <img class="web-image" src="./img/mods-folder.png">
+
+            </div>
+            <div class="split-right split-50 flex-column">
+                <p>
+                    Next, launch the game, click the "Mods" section in the main menu, then the 
+                    "Open Mods Folder" button. Copy your downloaded Distant Horizons jar file into that folder.
+                </p>
+                <p>
+                    Close the folder, close and restart the game. Next time you look at your mods 
+                    section you should be able to search and find Distant Horizons. If you can, the mod is installed
+                    and all ready to go.
+                </p>
+            </div>
+        </div>
+        <br/>
         
         <br/>
         <br/>
