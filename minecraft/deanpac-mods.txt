@@ -1,6 +1,6 @@
 # DeanPAC v1.7 server mods
 # Generated from minecraftinstance.json on 2026-07-03
-# 307 total mods, 31 client-only + 1 duplicate Curios stripped = 275 server mods
+# 307 total mods, 48 client-only + 1 duplicate Curios stripped = 258 server mods
 #
 # Format: one download URL per line. Lines starting with # are ignored.
 # These are downloaded into /data/mods/ during setup and re-synced on every boot.
@@ -20,7 +20,6 @@ https://edge.forgecdn.net/files/5491/156/ironchest-1.21-neoforge-16.0.7.jar
 https://edge.forgecdn.net/files/5973/188/resourcefullib-neoforge-1.21-3.0.12.jar
 https://edge.forgecdn.net/files/7032/89/createornithopterglider-1.0.3-1.21.1.jar
 https://edge.forgecdn.net/files/7951/368/createbetterfps-1.21.1-1.1.4.jar
-https://edge.forgecdn.net/files/6751/464/ToastControl-1.21.1-9.0.1.jar
 https://edge.forgecdn.net/files/8125/569/moonlight-neoforge-1.21.1-3.0.13.jar
 https://edge.forgecdn.net/files/5733/955/EasyAnvils-v21.1.0-1.21.1-NeoForge.jar
 https://edge.forgecdn.net/files/7148/568/%5b1.21.1%5d%20SecurityCraft%20v1.10.1.jar
@@ -28,7 +27,6 @@ https://edge.forgecdn.net/files/7746/488/cupboard-1.21-3.5.jar
 https://edge.forgecdn.net/files/7878/289/ftb-quests-neoforge-2101.1.24.jar
 https://edge.forgecdn.net/files/8037/481/DnDesires-1.21.1-2.3a-BETA.jar
 https://edge.forgecdn.net/files/5491/246/ironshulkerbox-1.21-neoforge-7.0.1.jar
-https://edge.forgecdn.net/files/5735/514/DeleteWorldsToTrash-v21.1.0-1.21.1-NeoForge.jar
 https://edge.forgecdn.net/files/7524/151/ferritecore-7.0.3-neoforge.jar
 https://edge.forgecdn.net/files/7693/114/ae2wtlib-19.4.1.jar
 https://edge.forgecdn.net/files/8101/993/lithostitched-1.7.7-neoforge-21.1.jar
@@ -36,12 +34,10 @@ https://edge.forgecdn.net/files/6315/149/JadeAddons-1.21.1-NeoForge-6.1.0.jar
 https://edge.forgecdn.net/files/7966/115/trashslot-neoforge-1.21.1-21.1.9.jar
 https://edge.forgecdn.net/files/5768/823/dungeons-and-taverns-v4.4.4%20%5bNeoForge%5d.jar
 https://edge.forgecdn.net/files/5591/15/Highlighter-1.21-neoforge-1.1.11.jar
-https://edge.forgecdn.net/files/5521/178/SimpleRPC-Universal-3.3.2.jar
 https://edge.forgecdn.net/files/7954/316/sophisticatedcore-1.21.1-1.4.25.1696.jar
 https://edge.forgecdn.net/files/5623/547/netherportalfix-neoforge-1.21.1-21.1.1.jar
 https://edge.forgecdn.net/files/6519/954/createmechanicalconfection-0.3.0.jar
 https://edge.forgecdn.net/files/6865/558/tesseract-1.0.38-neoforge-mc1.21.jar
-https://edge.forgecdn.net/files/6296/628/smoothchunk-1.21-4.1.jar
 https://edge.forgecdn.net/files/6529/130/curios-neoforge-9.5.1%2b1.21.1.jar
 https://edge.forgecdn.net/files/7715/134/ftb-xmod-compat-neoforge-21.1.8.jar
 https://edge.forgecdn.net/files/6785/734/owo-lib-neoforge-0.12.15.5-beta.1%2b1.21.jar
@@ -50,7 +46,6 @@ https://edge.forgecdn.net/files/6159/954/trimeffects-neoforge-mc1.21-2.1.1.jar
 https://edge.forgecdn.net/files/6145/369/despawntweaks-neoforge-1.0.0-1.21.1.jar
 https://edge.forgecdn.net/files/5778/461/elytraslot-neoforge-9.0.2%2b1.21.1.jar
 https://edge.forgecdn.net/files/7797/302/twilightforest-1.21.1-4.8.3345-universal.jar
-https://edge.forgecdn.net/files/6843/634/loadingbackgrounds-2.0.0-neoforge-1.20.2_to_1.21.1.jar
 https://edge.forgecdn.net/files/6494/399/mcw-roofs-2.3.2-mc1.21.1neoforge.jar
 https://edge.forgecdn.net/files/6479/44/DramaticDoors-NeoQuiFab-1.21.1-3.3.2.jar
 https://edge.forgecdn.net/files/8048/607/blueprint-1.21.1-8.1.0.jar
@@ -64,7 +59,6 @@ https://edge.forgecdn.net/files/7120/722/smarterfarmers-1.21-2.2.4-neoforge.jar
 https://edge.forgecdn.net/files/7571/852/Aoc_Core_1.21.jar
 https://edge.forgecdn.net/files/6485/740/Paxi-1.21.1-NeoForge-5.1.3.jar
 https://edge.forgecdn.net/files/8104/393/Create%20Encased-1.21.1-1.8.1.jar
-https://edge.forgecdn.net/files/8048/724/personality-1.21.1-5.0.2.jar
 https://edge.forgecdn.net/files/7926/632/chunksending-1.21-2.9.jar
 https://edge.forgecdn.net/files/5831/692/Searchables-neoforge-1.21.1-1.0.2.jar
 https://edge.forgecdn.net/files/6266/334/factory_blocks-neoforge-1.4.0%2bmc1.21.1.jar
@@ -80,7 +74,6 @@ https://edge.forgecdn.net/files/7922/750/idas-1.13.5%2b1.21.1-neoforge.jar
 https://edge.forgecdn.net/files/7802/495/integrated_stronghold-1.1.4%2b1.21.1-neoforge.jar
 https://edge.forgecdn.net/files/7600/395/industrialforegoing-1.21-3.6.38.jar
 https://edge.forgecdn.net/files/7168/412/sophisticatedbackpackscreateintegration-1.21.1-0.1.5.29.jar
-https://edge.forgecdn.net/files/6013/349/desiredservers-neoforge-1.21.1-1.6.0.jar
 https://edge.forgecdn.net/files/8049/672/CrashAssistant-neoforge-1.20.6-1.21.4-1.11.9.jar
 https://edge.forgecdn.net/files/8063/74/create-confectionery1.21.1_v1.1.3b.jar
 https://edge.forgecdn.net/files/7903/156/tectonic-3.0.22-neoforge-21.1.jar
@@ -90,7 +83,6 @@ https://edge.forgecdn.net/files/7515/858/comforts-neoforge-9.0.5%2b1.21.1.jar
 https://edge.forgecdn.net/files/7127/444/guideme-21.1.15.jar
 https://edge.forgecdn.net/files/7305/762/fastpaintings-1.21-1.3.0-neoforge.jar
 https://edge.forgecdn.net/files/7287/996/createmetalwork-2.0.0.jar
-https://edge.forgecdn.net/files/6798/196/VisualWorkbench-v21.1.1-1.21.1-NeoForge.jar
 https://edge.forgecdn.net/files/7084/444/lmft-1.1.1%2b1.21.9-neoforge.jar
 https://edge.forgecdn.net/files/7471/348/create_bb-1.0.7-1.21.1-Neoforge.jar
 https://edge.forgecdn.net/files/8031/875/dragonlib-neoforge-1.21.1-beta-3.0.26.jar
@@ -116,7 +108,6 @@ https://edge.forgecdn.net/files/8122/220/PuzzlesLib-v21.1.44-1.21.1-NeoForge.jar
 https://edge.forgecdn.net/files/6457/331/biomemusic-1.21-3.5.jar
 https://edge.forgecdn.net/files/7429/11/ftb-filter-system-neoforge-21.1.4.jar
 https://edge.forgecdn.net/files/6137/967/easy-piglins-neoforge-1.21.1-1.0.14.jar
-https://edge.forgecdn.net/files/5733/968/ResourcePackOverrides-v21.1.0-1.21.1-NeoForge.jar
 https://edge.forgecdn.net/files/7419/660/createcafe-1.4.3.jar
 https://edge.forgecdn.net/files/5885/735/NoChatReports-NEOFORGE-1.21.1-v2.9.1.jar
 https://edge.forgecdn.net/files/7608/681/ftb-chunks-neoforge-2101.1.14.jar
@@ -143,9 +134,7 @@ https://edge.forgecdn.net/files/6961/457/prickle-neoforge-1.21.1-21.1.11.jar
 https://edge.forgecdn.net/files/7489/91/Almanac-1.21.1-2-neoforge-1.5.2.jar
 https://edge.forgecdn.net/files/7437/845/yet_another_config_lib_v3-3.8.2%2b1.21.1-neoforge.jar
 https://edge.forgecdn.net/files/6640/970/lootintegrations-1.21.1-4.7.jar
-https://edge.forgecdn.net/files/6409/785/PickUpNotifier-v21.1.1-1.21.1-NeoForge.jar
 https://edge.forgecdn.net/files/7155/413/create_pattern_schematics-2.0.10.jar
-https://edge.forgecdn.net/files/7920/161/clientcrafting-1.21-2.1.jar
 https://edge.forgecdn.net/files/7251/965/BiomesOPlenty-neoforge-1.21.1-21.1.0.13.jar
 https://edge.forgecdn.net/files/6505/544/firstjoinmessage-1.21.1-3.8.jar
 https://edge.forgecdn.net/files/7392/199/leaky-1.21-2.4.jar
@@ -185,7 +174,6 @@ https://edge.forgecdn.net/files/7591/460/bits_n_bobs-0.0.44.jar
 https://edge.forgecdn.net/files/8036/95/create_fantasizing-1.21.1-1.1.3.jar
 https://edge.forgecdn.net/files/7344/744/ExtremeReactors2-1.21.1-2.4.28.jar
 https://edge.forgecdn.net/files/7866/688/backpacked-neoforge-1.21.1-3.0.5.jar
-https://edge.forgecdn.net/files/6407/807/invtweaks-1.21.1-1.3.2.jar
 https://edge.forgecdn.net/files/8083/481/FarmersDelight-1.21.1-1.3.2.jar
 https://edge.forgecdn.net/files/8127/223/cmpackagecouriers-neoforge-2.3.0.jar
 https://edge.forgecdn.net/files/8030/913/createaeronauticscurios-neoforge-1.21.1-1.0.jar
@@ -202,7 +190,6 @@ https://edge.forgecdn.net/files/5821/676/Glodium-1.21-2.2-neoforge.jar
 https://edge.forgecdn.net/files/6824/615/Design-n-Decor-1.21.1-2.1.0.jar
 https://edge.forgecdn.net/files/7842/279/Amplified_Nether_26.1_v1.2.14.jar
 https://edge.forgecdn.net/files/7704/203/guardvillagers-2.4.7-1.21.1.jar
-https://edge.forgecdn.net/files/6449/910/gallery-1.21.1-2.0.0.jar
 https://edge.forgecdn.net/files/8106/211/mechanical_botany-1.1.3%2b1.21.1-neoforged.jar
 https://edge.forgecdn.net/files/7461/27/amendments-1.21-2.0.15-neoforge.jar
 https://edge.forgecdn.net/files/7796/187/coroutil-neoforge-1.21.0-1.3.9.jar
@@ -234,7 +221,6 @@ https://edge.forgecdn.net/files/6794/589/polymorph-neoforge-1.1.0%2b1.21.1.jar
 https://edge.forgecdn.net/files/7370/449/extra_create_recipes_1.21.1_v1.jar
 https://edge.forgecdn.net/files/6165/711/recipeessentials-1.21-4.0.jar
 https://edge.forgecdn.net/files/8011/507/configurable-3.5.1%2b1.21.1-neoforge.jar
-https://edge.forgecdn.net/files/7451/537/controlify-2.5.2%2b1.21.1-neoforge.jar
 https://edge.forgecdn.net/files/7518/252/createaddition-1.5.10.jar
 https://edge.forgecdn.net/files/7892/954/NaturesCompass-1.21.1-3.4.0-neoforge.jar
 https://edge.forgecdn.net/files/7746/959/ftb-library-neoforge-2101.1.31.jar
@@ -243,7 +229,6 @@ https://edge.forgecdn.net/files/6533/725/txnilib-neoforge-1.0.24-1.21.1.jar
 https://edge.forgecdn.net/files/7315/860/pipeorgans-0.8.2%2b1.21.1.jar
 https://edge.forgecdn.net/files/6849/166/barbequesdelight-1.2.2.jar
 https://edge.forgecdn.net/files/7530/361/framework-neoforge-1.21.1-0.13.11.jar
-https://edge.forgecdn.net/files/5731/913/CutThrough-v21.1.0-1.21.1-NeoForge.jar
 https://edge.forgecdn.net/files/7251/823/copycats-3.0.4%2bmc.1.21.1-neoforge.jar
 https://edge.forgecdn.net/files/7843/800/e4mc-neoforge-6.1.0.jar
 https://edge.forgecdn.net/files/6696/97/Item-Obliterator-NeoForge-MC1.21.1-2.3.0.jar
@@ -261,14 +246,12 @@ https://edge.forgecdn.net/files/7727/898/ae2jeiintegration-1.2.1.jar
 https://edge.forgecdn.net/files/7018/307/corpse-neoforge-1.21.1-1.1.13.jar
 https://edge.forgecdn.net/files/5546/996/supermartijn642configlib-1.1.8-neoforge-mc1.21.jar
 https://edge.forgecdn.net/files/5881/107/notrample-1.21.1-1.0.1.jar
-https://edge.forgecdn.net/files/5513/549/gpumemleakfix-1.21-1.8.jar
 https://edge.forgecdn.net/files/7344/742/ZeroCore2-1.21.1-2.4.21.jar
 https://edge.forgecdn.net/files/7701/961/someassemblyrequired-5.2.8.jar
 https://edge.forgecdn.net/files/7039/849/enchdesc-neoforge-1.21.1-21.1.9.jar
 https://edge.forgecdn.net/files/7369/254/addonslib-neoforge-1.21.1-1.10.jar
 https://edge.forgecdn.net/files/8046/148/create_connected-1.1.16-mc1.21.1.jar
 https://edge.forgecdn.net/files/7622/554/AE2NetworkAnalyzer-1.21-2.1.5-neoforge.jar
-https://edge.forgecdn.net/files/5637/846/MouseTweaks-neoforge-mc1.21-2.26.1.jar
 https://edge.forgecdn.net/files/7367/221/connectivity-1.21.1-7.6.jar
 https://edge.forgecdn.net/files/7192/82/create_aquatic_ambitions-1.21.1-2.0.2.jar
 https://edge.forgecdn.net/files/7545/219/Jade-1.21.1-NeoForge-15.10.5.jar
