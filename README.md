@@ -621,45 +621,60 @@ spark profiler --thread server
 
 ## Backups
 
-### World backup
-
-The world data lives in `minecraft/data/world/`. To back it up:
+### World backup (hot, no server stop)
 
 ```bash
-# Stop the server first (clean save)
-docker compose exec minecraft mc-send-to-console "stop"
-
-# Wait for it to shut down, then:
-tar -czf world-backup-$(date +%Y%m%d).tar.gz minecraft/data/world/
-
-# Restart
-docker compose up -d
+./scripts/backup.sh
 ```
 
-### Full data backup
+Sends `save-all` via RCON to flush chunks to disk, then tars `minecraft/data/world/` (and the DH LOD database if present) to `backups/world-backup-YYYYMMDD-HHMMSS.tar.gz`. The server stays running the whole time.
+
+### Full data backup (server stopped)
 
 ```bash
-docker compose down
-tar -czf full-backup-$(date +%Y%m%d).tar.gz minecraft/data/
-docker compose up -d
+./scripts/backup.sh --full
+```
+
+Stops the server, tars the entire `minecraft/data/` directory (world, mods, config, DH LODs, ops.json, whitelist), restarts. Use this for a complete snapshot before a modpack update or major change.
+
+### Backup rotation
+
+```bash
+./scripts/backup.sh --keep 5         # keep last 5 world backups
+./scripts/backup.sh --full --keep 3  # keep last 3 full backups
+```
+
+### Automated nightly backups (cron)
+
+```bash
+# Edit crontab
+crontab -e
+
+# Nightly world backup at 4am, keep last 7
+0 4 * * * /path/to/minecraft-stack/scripts/backup.sh --keep 7 >> /path/to/minecraft-stack/backups/cron.log 2>&1
 ```
 
 ### Restore
 
 ```bash
-docker compose down
-rm -rf minecraft/data/*
-docker compose up -d
-# wait for minecraft-setup to finish:
-docker compose logs minecraft-setup -f   # until "[setup] Done!"
-docker compose stop minecraft
-tar -xzf world-backup-20250703.tar.gz -C .   # extracts minecraft/data/world
-docker compose up -d
+# World-only restore (most common)
+./scripts/restore.sh backups/world-backup-20250703-040000.tar.gz
+
+# Full restore (world + mods + config)
+./scripts/restore.sh backups/full-backup-20250703-040000.tar.gz
 ```
 
-> ⚠️ **Order matters:** `setup.sh` wipes `/data` on re-run, so the world must be copied back only *after* setup completes. Restoring the world before `up` causes setup to nuke it.
+The script:
+1. Makes a safety-net backup of the current world.
+2. Stops the server.
+3. Removes the current world (or full data for `--full`).
+4. Extracts the backup archive.
+5. Starts the server.
+6. Waits for "Done!" in the logs.
 
-> 💡 **Automated backups:** Consider setting up a cron job to run the world backup nightly. The server doesn't need to stop — a hot copy is usually fine for a small server, though a stopped server guarantees consistency.
+> ⚠️ **The safety net:** Before overwriting anything, `restore.sh` saves the current world to `backups/pre-restore-safety-YYYYMMDD-HHMMSS.tar.gz`. If the restore goes wrong, you can re-run restore.sh against that safety file.
+
+> 💡 **Full restore and setup.sh:** When restoring a full backup, `setup.sh` sees `/data/run.sh` already exists and skips the NeoForge install (Phase 1). It still re-syncs extra mods (Phase 2). Your world, mods, and config are preserved from the backup.
 
 ---
 
