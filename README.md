@@ -90,7 +90,7 @@ minecraft-stack/
 │       ├── cf0.png
 │       └── mc-address-prompt.png
 └── minecraft/
-    ├── setup.sh                # Init container script — the heart of the auto-setup
+    ├── setup.sh                # Init container script — two-phase: NeoForge install (first boot) + extra-mods sync (every boot)
     ├── server.properties       # Tracked server config (applied during setup)
     ├── server-icon.png         # Tracked server list icon (64×64 PNG)
     ├── extra-mods.txt          # Download URLs for extra server-side mods
@@ -158,6 +158,8 @@ The `minecraft-setup` container starts and runs `setup.sh`, which takes **3–5 
 8. Reads `extra-mods.txt` and downloads each listed mod jar into `/data/mods/`.
 9. Sets ownership to `1000:1000` (the itzg image's default user).
 
+> **Note:** Steps 1–7 only run on first boot (when `/data/run.sh` doesn't exist). Steps 8–9 run on **every** boot so extra-mods updates take effect with a simple `compose down → up`. See [Boot Sequence](#boot-sequence) for details.
+
 The `minecraft` container waits for setup to complete, then starts the server.
 
 ### Watch the progress
@@ -178,7 +180,12 @@ You'll know the server is ready when you see:
 
 ### Subsequent boots
 
-On restart or reboot, the setup container sees `/data/run.sh` already exists, prints a skip message, and exits immediately. The server starts in seconds.
+The setup script runs in two phases:
+
+1. **NeoForge install** (skipped) — `/data/run.sh` already exists, so the pack download, extraction, and installer are skipped. The world and server files are untouched.
+2. **Extra mods** (always runs) — reads `extra-mods.txt`, removes previously-installed extra jars via a manifest, and re-downloads all listed mods. This means URL changes or version bumps in `extra-mods.txt` take effect with a simple `compose down → git pull → up` — no wipe needed.
+
+The setup container finishes in seconds (just the mod downloads), then the server starts.
 
 ---
 
@@ -191,19 +198,24 @@ docker compose up -d
         │
         ├──► minecraft-setup starts
         │         │
-        │         ├── /data/run.sh exists?
-        │         │     ├── YES → print skip message → exit 0
-        │         │     └── NO  → continue ↓
+        │         ├── apt-get install wget unzip  (always)
         │         │
-        │         ├── apt-get install wget unzip
-        │         ├── wget server pack zip
-        │         ├── unzip → find neoforge-*-installer.jar
-        │         ├── rm -rf /data/*          (clean slate)
-        │         ├── cp -r extracted/* /data/ (copy server files)
-        │         ├── java -jar neoforge-installer.jar --installServer
-        │         ├── cp server.properties → /data/
-        │         ├── cp server-icon.png   → /data/
-        │         ├── wget each URL from extra-mods.txt → /data/mods/
+        │         ├── Phase 1: NeoForge install
+        │         │     ├── /data/run.sh exists?
+        │         │     │     ├── YES → skip to Phase 2
+        │         │     │     └── NO  → continue ↓
+        │         │     ├── wget server pack zip
+        │         │     ├── unzip → find neoforge-*-installer.jar
+        │         │     ├── rm -rf /data/*          (clean slate)
+        │         │     ├── cp -r extracted/* /data/ (copy server files)
+        │         │     ├── java -jar neoforge-installer.jar --installServer
+        │         │     └── cp server.properties + server-icon.png → /data/
+        │         │
+        │         ├── Phase 2: Extra mods (always runs)
+        │         │     ├── remove jars from previous run (via manifest)
+        │         │     ├── wget each URL from extra-mods.txt → /data/mods/
+        │         │     └── write manifest for next boot
+        │         │
         │         ├── chown -R 1000:1000 /data
         │         └── exit 0
         │
@@ -222,11 +234,16 @@ docker compose up -d
 
 ### Idempotency
 
-The setup script's first line checks for `/data/run.sh`. If it exists, the script exits immediately. This means:
+The setup script has two phases:
 
-- **`docker compose restart`** — setup is skipped, server restarts.
-- **`docker compose down && up`** — setup is skipped if data persists.
-- **`rm -rf minecraft/data/* && docker compose up`** — setup re-runs from scratch.
+- **Phase 1 (NeoForge install):** Guarded by `/data/run.sh`. Only runs on a fresh setup (no existing server).
+- **Phase 2 (Extra mods):** Always runs. Re-downloads mods from `extra-mods.txt` and uses a manifest (`/data/.extra-mods-manifest.txt`) to remove stale jars before writing new ones.
+
+This means:
+
+- **`docker compose restart`** — setup container does not re-run (containers aren't recreated). Server restarts with existing mods.
+- **`docker compose down && up`** — Phase 1 skipped (data persists), Phase 2 re-runs extra-mods. Updated URLs in `extra-mods.txt` take effect.
+- **`rm -rf minecraft/data/* && docker compose up`** — full rebuild from scratch (both phases).
 
 ### Wiping and rebuilding
 
@@ -334,7 +351,7 @@ All environment variables for the `minecraft` service:
 
 ## Extra Server-Side Mods
 
-The `minecraft/extra-mods.txt` file contains a list of direct-download URLs for server-side mods. These are downloaded into `/data/mods/` during setup — no binaries committed to git.
+The `minecraft/extra-mods.txt` file contains a list of direct-download URLs for server-side mods. These are downloaded into `/data/mods/` during setup and **re-synced on every boot** — no binaries committed to git. Adding, updating, or removing a mod only requires editing the file and running `docker compose down && up`.
 
 ### Format
 
@@ -356,6 +373,7 @@ https://cdn.modrinth.com/data/.../mod-name.jar
 | **ModernFix** | 5.26.1 | Improves load times, fixes performance bugs |
 | **AI Improvements** | 0.5.3 | Optimizes entity AI pathfinding and ticking |
 | **Spark** | 1.10.124 | In-game performance profiler (`/spark health`, `/spark profiler`) |
+| **Distant Horizons** | 3.1.2-b | Server-side LOD generation + streaming to DH clients. Enables distant terrain rendering beyond vanilla view distance. See [Distant Horizons](#distant-horizons) below. |
 
 ### Adding a new mod
 
@@ -364,22 +382,62 @@ https://cdn.modrinth.com/data/.../mod-name.jar
 3. Copy the direct download URL (right-click the download button → copy link).
 4. Add it to `minecraft/extra-mods.txt`.
 5. Commit and push.
+6. Apply: `docker compose down && docker compose up -d` (no wipe needed — extra-mods re-sync on every boot).
 
-### Installing on a running server (no wipe needed)
+### Installing on a running server (no restart needed)
+
+If you want the mod live immediately without taking the server down:
 
 ```bash
-cd minecraft/data/mods
-wget -O ModName.jar "https://cdn.modrinth.com/.../ModName.jar"
+docker compose exec minecraft wget -O /data/mods/ModName.jar "https://cdn.modrinth.com/.../ModName.jar"
 docker compose restart minecraft
 ```
 
-Then add the URL to `extra-mods.txt` so it survives future wipes.
+Then add the URL to `extra-mods.txt` so it's tracked for future boots.
 
 ### Removing a mod
 
 1. Delete the line from `minecraft/extra-mods.txt`.
-2. Delete the jar from `minecraft/data/mods/`.
-3. Restart: `docker compose restart minecraft`
+2. Commit and push.
+3. `docker compose down && docker compose up -d` — the manifest system removes the stale jar automatically on next boot.
+
+To remove immediately without taking the server down:
+
+```bash
+rm minecraft/data/mods/ModName.jar
+docker compose restart minecraft
+```
+
+### Distant Horizons
+
+[Distant Horizons](https://modrinth.com/mod/distanthorizons) (DH) renders simplified terrain beyond Minecraft's vanilla view distance. The server-side jar generates LOD (Level of Detail) data and streams it to clients running the DH mod, so players see distant terrain without the server sending full chunk data.
+
+**Setup is a two-step process after first boot:**
+
+1. **Pre-generate chunks with Chunky** (writes vanilla chunk data to disk):
+
+   ```
+   chunky radius 2500
+   chunky start
+   ```
+
+   Wait for completion (`chunky progress`). This is the single most impactful performance fix — see [Chunk Pre-Generation](#chunk-pre-generation).
+
+2. **Pre-generate LODs with DH** (reads those chunks and builds LOD geometry):
+
+   ```
+   dh pregen start minecraft:overworld 0 0 2500
+   ```
+
+   Match the radius to your Chunky radius. When done:
+
+   ```
+   dh pregen stop
+   ```
+
+**After that, it's mostly automatic.** DH reactively generates LODs for new chunks as players explore (controlled by `enableDistantGeneration = true` in `DistantHorizons.toml`). The pregen is a one-time primer for the distant vista; you only need to rerun it after a world wipe or if you expand the pregen radius.
+
+> ⚠️ The DH LOD database lives in `minecraft/data/` and survives restarts but **not** a wipe. Back it up alongside the world if you want to avoid re-running pregen after a rebuild.
 
 ---
 
