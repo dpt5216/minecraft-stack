@@ -289,7 +289,7 @@ docker compose restart minecraft
 | `allow-nether` | `true` | |
 | `enable-command-block` | `false` | Set to `true` if using command blocks |
 | `enforce-whitelist` | `false` | Set to `true` to require whitelisting |
-| `enable-rcon` | `false` | Set to `true` + set `rcon.password` for remote console |
+| `enable-rcon` | `true` | RCON enabled. Port 25575 not exposed externally — use `docker compose exec minecraft rcon-cli` |
 | `enable-query` | `true` | Allows server listing tools to query the server |
 | `pvp` | `true` | |
 | `spawn-protection` | `16` | Blocks within this radius of spawn can't be modified by non-ops |
@@ -464,23 +464,32 @@ stop
 
 ### RCON
 
-For a more convenient prompt with command history and tab-completion, enable RCON:
+RCON is **enabled by default** in this stack. The RCON port (25575) is not exposed to the host or the public internet — it's only accessible from inside the container. This means you use it via `docker compose exec` from the host (typically over SSH):
 
-1. Edit `minecraft/server.properties`:
-   ```properties
-   enable-rcon=true
-   rcon.password=your_secure_password
-   rcon.port=25575
-   ```
-2. Apply and restart:
-   ```bash
-   cp minecraft/server.properties minecraft/data/server.properties
-   docker compose restart minecraft
-   ```
-3. Connect:
-   ```bash
-   docker compose exec minecraft rcon-cli
-   ```
+```bash
+# One-off command
+docker compose exec minecraft rcon-cli "list"
+docker compose exec minecraft rcon-cli "chunky start"
+docker compose exec minecraft rcon-cli "dh pregen start minecraft:overworld 0 0 2500"
+
+# Interactive prompt (with command history)
+docker compose exec minecraft rcon-cli
+```
+
+The password is stored in a `.env` file (gitignored) and injected via the `RCON_PASSWORD` environment variable in `docker-compose.yml`. The tracked `server.properties` has `rcon.password=` (empty) — the itzg image fills it in from the env var at startup.
+
+**Setup:**
+
+```bash
+# Create .env (not tracked by git)
+echo 'RCON_PASSWORD=your_secure_password' > .env
+```
+
+Port 25575 is deliberately not mapped in `docker-compose.yml` — RCON is plaintext TCP with no TLS, so it stays container-internal. To change the password, edit `.env` and restart:
+
+```bash
+docker compose down && docker compose up -d
+```
 
 ### Safe Shutdown
 

@@ -49,6 +49,7 @@ services:
       MEMORY: "16G"
       # server.properties is managed manually — edit ./minecraft/data/server.properties
       USE_AIKAR_FLAGS: "TRUE"
+      RCON_PASSWORD: ${RCON_PASSWORD}
     tty: true
     stdin_open: true
     mem_limit: 20g
