@@ -1,0 +1,126 @@
+body {
+    background-color: #413064;
+    font-family: 'Jost', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.title-text {
+    text-align: center;
+    width: 800px;
+    color: white;
+    font-size: x-large;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Press Start 2P', cursive;
+}
+.title-text h1 {
+    line-height: 1.6;
+}
+.linkbar {
+    margin-top: 30px;
+    padding: 10px;
+    text-align: right;
+    width: 800px;
+    color: white;
+}
+.linkbar a {
+    margin-right: 15px;
+    text-decoration: none;
+    color: rgb(127, 193, 255);
+}
+.homelink {
+    margin-top: 30px;
+    padding: 10px;
+    text-align: left;
+    width: 800px;
+    color: white;
+}
+.homelink a {
+    margin-left: 15px;
+    text-decoration: none;
+    color: rgb(127, 193, 255);
+}
+.content {
+    width: 800px;
+    color: white;
+}
+.blog-post {
+    margin-bottom: 20px;
+}
+
+a {
+    color: rgb(127, 229, 255);
+}
+
+.section-header {
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+.unified-container {
+    margin-left: 50px;
+    margin-right: 50px;
+}
+
+.split-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+}
+.split-left {
+    margin-right: 20px;
+}
+.split-right {
+    margin-left: 20px;
+}
+.split-66 {
+    width: 66.667%;
+}
+.split-33 {
+    width: 33.333%;
+}
+.split-50 {
+    width: 50%;
+}
+.split-25 {
+    width: 25%;
+}
+
+img.web-image {
+    width: 100%;
+    height: auto;
+}
+
+iframe.youtube {
+    width: 100%;
+    height: 100%;
+}
+
+img.book-cover {
+    width: 100%;
+    height: auto;
+}
+
+div.teaserscroll {
+    overflow: auto;
+    white-space: nowrap;
+}
+
+img.teaser {
+    height: 250px;
+}
+
+div.flex-column {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+}
+
+div.flex-row {
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+}
