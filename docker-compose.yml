@@ -14,8 +14,6 @@ services:
       - ./site:/srv/www:ro
       - caddy_data:/data
       - caddy_config:/config
-    networks:
-      - proxy-net
 
   # --- One-shot setup: downloads + extracts + installs NeoForge ---
   minecraft-setup:
@@ -58,7 +56,3 @@ services:
 volumes:
   caddy_data:
   caddy_config:
-
-networks:
-  proxy-net:
-    driver: bridge

@@ -16,7 +16,7 @@ mkdir -p logs
 
 # Scan last hour of logs for errors
 TMP=$(mktemp)
-docker compose logs minecraft --since 1h 2>/dev/null \
+docker compose logs minecraft --tail 5000 2>/dev/null \
   | grep -iE 'ERROR|Exception|Crash|Can.t keep up|running behind' \
   | grep -ivE 'chunk load|keepalive|Setting |saved the game|Saving chunks' \
   > "$TMP" || true

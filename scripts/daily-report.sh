@@ -34,15 +34,13 @@ WORLD_SIZE=$(du -sh minecraft/data/world 2>/dev/null | cut -f1 || echo "?")
 FREE=$(df -h . | tail -1 | awk '{print $4 " free (" $5 " used)"}')
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-# Determine color: green if Health >= 18, orange if >= 15, red otherwise
-COLOR=5763719
-if echo "$Health" | awk '{exit ($1 >= 18.0) ? 0 : 1}' 2>/dev/null; then
-  COLOR=5763719
-elif echo "$Health" | awk '{exit ($1 >= 15.0) ? 0 : 1}' 2>/dev/null; then
-  COLOR=16753920
-else
-  COLOR=15548992
-fi
+# Determine color from health indicator string
+case "$HEALTH" in
+  healthy)  COLOR=5763719  ;;  # green
+  minor)    COLOR=16753920 ;;  # orange
+  lagging)  COLOR=15548992 ;;  # red
+  *)        COLOR=7506394  ;;  # grey/blue
+esac
 
 curl -s -X POST "$WEBHOOK" \
   -H 'Content-Type: application/json' \
@@ -53,7 +51,7 @@ curl -s -X POST "$WEBHOOK" \
       \"timestamp\": \"$TS\",
       \"fields\": [
         {\"name\": \"Players\", \"value\": \"$PLAYERS\", \"inline\": true},
-        {\"name\": \"Health\", \"value\": \"$Health / 20.0\", \"inline\": true},
+        {\"name\": \"Health\", \"value\": \"$HEALTH ($HEALTH_COUNT warnings)\", \"inline\": true},
         {\"name\": \"Memory\", \"value\": \"$MEM\", \"inline\": true},
         {\"name\": \"World Size\", \"value\": \"$WORLD_SIZE\", \"inline\": true},
         {\"name\": \"Disk\", \"value\": \"$FREE\", \"inline\": true}

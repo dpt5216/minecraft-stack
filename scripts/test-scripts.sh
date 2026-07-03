@@ -211,7 +211,7 @@ emit "${CYAN}[3] status.sh deep check${RESET}"
 STATUS_OUTPUT=$(timeout --kill-after=5 30 ./scripts/status.sh 2>&1) || true
 echo "$STATUS_OUTPUT" | grep -q "Container:" && verify "shows container status" "echo '$STATUS_OUTPUT' | grep -q 'Container:'" || true
 echo "$STATUS_OUTPUT" | grep -q "Players:" && verify "shows player count" "echo '$STATUS_OUTPUT' | grep -q 'Players:'" || true
-echo "$STATUS_OUTPUT" | grep -q "TPS:" && verify "shows health" "echo '$STATUS_OUTPUT' | grep -q 'TPS:'" || true
+echo "$STATUS_OUTPUT" | grep -q "Health:" && verify "shows health" "echo '$STATUS_OUTPUT' | grep -q 'Health:'" || true
 echo "$STATUS_OUTPUT" | grep -q "Memory:" && verify "shows memory" "echo '$STATUS_OUTPUT' | grep -q 'Memory:'" || true
 echo "$STATUS_OUTPUT" | grep -q "Disk:" && verify "shows disk" "echo '$STATUS_OUTPUT' | grep -q 'Disk:'" || true
 
@@ -239,7 +239,7 @@ emit "${CYAN}[3] pre-flight.sh deep check${RESET}"
 PF_OUTPUT=$(timeout --kill-after=5 30 ./scripts/pre-flight.sh 2>&1) || true
 echo "$PF_OUTPUT" | grep -qi "container running" && verify "checks container" "echo '$PF_OUTPUT' | grep -qi 'container running'" || true
 echo "$PF_OUTPUT" | grep -qi "RCON" && verify "checks RCON" "echo '$PF_OUTPUT' | grep -qi 'RCON'" || true
-echo "$PF_OUTPUT" | grep -qi "TPS" && verify "checks health" "echo '$PF_OUTPUT' | grep -qi 'TPS'" || true
+echo "$PF_OUTPUT" | grep -qi "health" && verify "checks health" "echo '$PF_OUTPUT' | grep -qi 'health'" || true
 echo "$PF_OUTPUT" | grep -qi "disk" && verify "checks disk" "echo '$PF_OUTPUT' | grep -qi 'disk'" || true
 echo "$PF_OUTPUT" | grep -qi "backup" && verify "checks backup" "echo '$PF_OUTPUT' | grep -qi 'backup'" || true
 

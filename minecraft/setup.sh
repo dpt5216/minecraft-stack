@@ -45,10 +45,12 @@ if [ ! -f /data/run.sh ]; then
   echo "[setup] Running NeoForge installer..."
   java -jar neoforge-*-installer.jar --installServer
 
-  # Apply tracked config files
-  cp /tmp/server.properties /data/server.properties
-  cp /tmp/server-icon.png /data/server-icon.png
 fi
+
+# Always apply tracked config (server.properties + icon) so changes
+# take effect with a simple compose down -> up, no wipe needed.
+cp /tmp/server.properties /data/server.properties
+cp /tmp/server-icon.png /data/server-icon.png
 
 # ── Phase 2: Extra server-side mods — always run ─────────────────
 # Re-downloads every boot so URL changes / version bumps in

@@ -12,7 +12,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-STATE_FILE="/tmp/mc-restart-count"
+STATE_FILE="logs/.mc-restart-count"
 
 source scripts/notify.sh
 

@@ -156,7 +156,7 @@ git clone <repo-url> minecraft-stack
 cd minecraft-stack
 
 # Create .env with an RCON password (required for scripts)
-echo "RCON_PASSWORD=*** rand -base64 18)" > .env
+echo "RCON_PASSWORD=$(openssl rand -base64 18)" > .env
 
 # Start everything
 docker compose up -d
@@ -276,7 +276,9 @@ The tracked `minecraft/server.properties` is copied into `/data/` during setup, 
 
 1. Edit `minecraft/server.properties` in the repo.
 2. Commit and push.
-3. Either wipe + redeploy, or apply live:
+3. Apply with `docker compose down && docker compose up -d` — setup.sh syncs `server.properties` on every boot, so no wipe is needed.
+
+For instant changes without recreating the container:
 
 ```bash
 cp minecraft/server.properties minecraft/data/server.properties
@@ -297,7 +299,7 @@ docker compose restart minecraft
 | `enable-rcon` | `true` | RCON enabled. Port 25575 not exposed — use `docker compose exec` |
 | `enable-query` | `true` | Allows server listing tools to query the server |
 | `enforce-whitelist` | `false` | Set to `true` to require whitelisting |
-| `snooper-enabled` | `true` | Sends hardware/server stats to Mojang. Set to `false` for privacy |
+| `snooper-enabled` | `false` | Sends hardware/server stats to Mojang. Disabled for privacy |
 
 ### server-icon.png
 
@@ -401,6 +403,24 @@ Then add the URL to `extra-mods.txt` so it's tracked for future boots.
 
 ### Console Access
 
+The safest way to send commands is via RCON or `mc-send-to-console`. Reserve `docker attach` for when you need the live log stream.
+
+**Via RCON (recommended):**
+
+```bash
+docker compose exec -T minecraft rcon-cli "list" < /dev/null
+docker compose exec -T minecraft rcon-cli "whitelist add PlayerName" < /dev/null
+docker compose exec -T minecraft rcon-cli "stop" < /dev/null
+```
+
+**Via mc-send-to-console:**
+
+```bash
+docker compose exec minecraft mc-send-to-console "say Server restarting in 5 minutes!"
+```
+
+**Via docker attach (live console — use with caution):**
+
 ```bash
 docker attach minecraft-server
 ```
@@ -416,7 +436,7 @@ stop
 
 **To detach without stopping the server:** press **Ctrl+P, then Ctrl+Q**.
 
-> ⚠️ **Ctrl+C will kill the server.** Don't use it. Always use Ctrl+P, Ctrl+Q to detach.
+> ⚠️ **Ctrl+C will kill the server.** Don't use it. Always use Ctrl+P, Ctrl+Q to detach. Consider using RCON instead — it's scriptable, doesn't risk accidental shutdowns, and works over SSH without a TTY.
 
 ### RCON
 
@@ -437,7 +457,7 @@ The password is stored in a `.env` file (gitignored) and injected via the `RCON_
 
 ```bash
 # Create .env (not tracked by git)
-echo "RCON_PASSWORD=*** rand -base64 18)" > .env
+echo "RCON_PASSWORD=$(openssl rand -base64 18)" > .env
 ```
 
 Port 25575 is deliberately not mapped — RCON is plaintext TCP with no TLS, so it stays container-internal. To change the password, edit `.env` and restart:
@@ -888,7 +908,7 @@ To see recent warnings:
 ```bash
 ./scripts/error-scan.sh
 # or
-docker compose logs minecraft --since 1h 2>&1 | grep "Can't keep up"
+docker compose logs minecraft --tail 2000 2>&1 | grep "Can't keep up"
 ```
 
 ---

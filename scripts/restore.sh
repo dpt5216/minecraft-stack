@@ -79,7 +79,7 @@ sleep 3
 if [ "$IS_FULL" = true ]; then
   # Full restore: replace entire data dir, then re-run setup
   echo -e "${CYAN}[restore]${RESET} Removing current data..."
-  rm -rf minecraft/data/*
+  rm -rf minecraft/data/* minecraft/data/.[!.]* minecraft/data/..?* 2>/dev/null || true
   echo -e "${CYAN}[restore]${RESET} Extracting full backup..."
   tar -xzf "$BACKUP_FILE"
   # run.sh exists in the backup, so setup will skip Phase 1

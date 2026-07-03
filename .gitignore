@@ -11,6 +11,8 @@ docker-compose.override.yml
 .DS_Store
 Thumbs.db
 
+*.pdn
+
 # Local review/scratch output
 ignored/
 backups/
