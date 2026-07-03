@@ -94,7 +94,7 @@ else
 fi
 
 # 6. Boot errors in last 50 log lines?
-ERRORS=$(docker compose logs minecraft --tail 50 2>/dev/null | grep -ciE 'ERROR|Exception|Crash' || echo "0")
+ERRORS=$(docker compose logs minecraft --tail 50 2>/dev/null | grep -ciE 'ERROR|Exception|Crash' || true)
 if [ "$ERRORS" -eq 0 ]; then
   check "No boot errors in recent logs" pass
 else

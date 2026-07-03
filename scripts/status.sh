@@ -89,5 +89,5 @@ echo -e "  Disk:       ${FREE}"
 
 # 6. Last 5 log lines
 echo -e "  ${DIM}--- last 5 log lines ---${RESET}"
-docker compose logs minecraft --tail 5 2>/dev/null | sed 's/^/  /' || echo "  (no logs)"
+timeout 3 docker compose logs minecraft --tail 5 2>/dev/null | sed 's/^/  /' || echo "  (no logs)"
 echo ""

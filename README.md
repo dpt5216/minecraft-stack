@@ -1,6 +1,6 @@
 # Minecraft Server Stack — "All the Forge"
 
-A fully reproducible, Docker-based Minecraft server running the **All the Forge 11** modpack (v11.2.1hf) by TeamAMPZ on **NeoForge 21.1.219** for **Minecraft 1.21.1**. The stack is designed for zero-friction redeploys: wipe the data directory, run `docker compose up`, and the server rebuilds itself from scratch — no manual jar downloads, no API keys, no fragile `.env` parsing.
+A fully reproducible, Docker-based Minecraft server running the **All the Forge 11** modpack (v11.2.1hf) on **NeoForge 21.1.219** for **Minecraft 1.21.1**. Zero-friction redeploys: wipe the data directory, run `docker compose up`, and the server rebuilds itself — no manual jar downloads, no API keys.
 
 ---
 
@@ -24,9 +24,12 @@ A fully reproducible, Docker-based Minecraft server running the **All the Forge 
   - [Ops & Whitelist](#ops--whitelist)
 - [Performance Tuning](#performance-tuning)
   - [Chunk Pre-Generation](#chunk-pre-generation)
+  - [Distant Horizons](#distant-horizons)
   - [View & Simulation Distance](#view--simulation-distance)
   - [Included Performance Mods](#included-performance-mods)
-- [Backups](#backups)
+- [Backups & Restore](#backups--restore)
+- [Maintenance & Monitoring](#maintenance--monitoring)
+- [Script Reference](#script-reference)
 - [Updating the Modpack](#updating-the-modpack)
 - [The Landing Page](#the-landing-page)
 - [Troubleshooting](#troubleshooting)
@@ -41,9 +44,9 @@ A fully reproducible, Docker-based Minecraft server running the **All the Forge 
 │   Caddy      │     │  minecraft-setup    │     │   minecraft      │
 │  (reverse    │     │  (one-shot init)    │     │   (game server)  │
 │   proxy)     │     │                     │     │                  │
-│              │     │  1. downloads pack  │     │  TYPE: CUSTOM    │
-│  :80/:443    │     │  2. extracts files  │     │  runs /data/     │
-│  web + TLS   │     │  3. installs NeoF.  │──┬──│  run.sh          │
+│  :80/:443    │     │  1. downloads pack  │     │  TYPE: CUSTOM    │
+│  web + TLS   │     │  2. extracts files  │     │  runs /data/     │
+│              │     │  3. installs NeoF.  │──┬──│  run.sh          │
 │              │     │  4. copies config   │  │  │                  │
 └──────────────┘     │  5. downloads extra │  │  │  :25565          │
                      │     mods            │  │  │  16 GB RAM       │
@@ -56,13 +59,13 @@ A fully reproducible, Docker-based Minecraft server running the **All the Forge 
 
 | Container | Image | Purpose | Lifecycle |
 |---|---|---|---|
-| **caddy** | `caddy:latest` | Reverse proxy with automatic HTHealth (Let's Encrypt) for the static landing page at `minecraft.dthasno.website` | Always running |
-| **minecraft-setup** | `eclipse-temurin:21` | One-shot init: downloads the server pack, installs NeoForge, applies tracked config, pulls extra mods | Runs once, exits successfully, skipped on subsequent boots |
-| **minecraft** | `itzg/minecraft-server:java21` | The game server. Waits for setup to finish, then runs `/data/run.sh` | Always running (restarts on crash) |
+| **caddy** | `caddy:2.11` | Reverse proxy with automatic HTTPS (Let's Encrypt) for the static landing page | Always running |
+| **minecraft-setup** | `eclipse-temurin:21` | One-shot init: downloads the server pack, installs NeoForge, applies tracked config, pulls extra mods | Runs once on fresh install; Phase 2 re-runs on every `compose down → up` |
+| **minecraft** | `itzg/minecraft-server:2026.6.1-java21` | The game server. Waits for setup to finish, then runs `/data/run.sh` | Always running (restarts on crash) |
 
 ### Why this design?
 
-The standard itzg CurseForge integration (`TYPE: CURSEFORGE` with `CF_SLUG` + `CF_API_KEY`) requires a CurseForge API key. API keys often contain `$` and other special characters that break Docker Compose's `.env` parsing, and the fallback mechanism (`CF_SERVER_MOD`) expects a pre-installed server, not a raw server pack zip with an installer jar.
+The standard itzg CurseForge integration (`TYPE: CURSEFORGE` with `CF_SLUG` + `CF_API_KEY`) requires a CurseForge API key. API keys often contain `$` and other special characters that break Docker Compose's `.env` parsing, and the fallback mechanism expects a pre-installed server, not a raw server pack zip with an installer jar.
 
 This stack sidesteps all of that by using a dedicated init container that:
 
@@ -81,27 +84,39 @@ The main server then uses `TYPE: CUSTOM` with `CUSTOM_SERVER: /data/run.sh` — 
 minecraft-stack/
 ├── docker-compose.yml          # All services, volumes, networks
 ├── Caddyfile                   # Reverse proxy config + TLS for the landing page
-├── .gitignore                  # Ignores data/, secrets, OS files
+├── .gitignore                  # Ignores data/, secrets, backups, logs
 ├── README.md                   # This file
-├── site/                       # Static landing page served by Caddy
-│   ├── index.html              # Player-facing setup instructions
-│   └── img/                    # Screenshots and images
-│       ├── soy.png
-│       ├── cf0.png
-│       └── mc-address-prompt.png
+├── scripts/                    # Maintenance and monitoring scripts
+│   ├── backup.sh               # Hot world backup or full data backup
+│   ├── restore.sh              # Restore from backup archive
+│   ├── status.sh               # Server health overview (--oneline for cron)
+│   ├── disk-check.sh           # Disk space and world size check
+│   ├── health-watch.sh         # Continuous health monitor (tmux)
+│   ├── log-watch.sh            # Filtered live log tail (tmux)
+│   ├── pre-flight.sh           # Pre-session readiness check
+│   ├── crash-watch.sh          # Container restart detection
+│   ├── error-scan.sh           # Scan logs for errors
+│   ├── daily-report.sh         # Morning Discord status embed
+│   ├── mod-audit.sh            # List installed mods, flag duplicates
+│   ├── pregen.sh               # Chunky + DH pregen chaining
+│   ├── notify.sh               # Discord webhook helper
+│   ├── common.sh               # Shared functions (health checking)
+│   └── test-scripts.sh         # Staged audit of all scripts
 └── minecraft/
-    ├── setup.sh                # Init container script — two-phase: NeoForge install (first boot) + extra-mods sync (every boot)
-    ├── server.properties       # Tracked server config (applied during setup)
-    ├── server-icon.png         # Tracked server list icon (64×64 PNG)
+    ├── setup.sh                # Init container script (two-phase)
+    ├── server.properties       # Tracked server config
+    ├── server-icon.png         # Tracked server list icon (64x64 PNG)
     ├── extra-mods.txt          # Download URLs for extra server-side mods
-    └── data/                   # Runtime data (gitignored, persistent across restarts)
+    └── data/                   # Runtime data (gitignored, persistent)
         ├── run.sh              # Generated by NeoForge installer
         ├── libraries/          # NeoForge runtime libraries
-        ├── mods/               # All mod jars (from pack + extra-mods.txt)
+        ├── mods/               # All mod jars (pack + extra-mods.txt)
         ├── config/             # Mod configuration files
         ├── world/              # The actual Minecraft world
-        ├── server.properties   # Copied from tracked version during setup
-        ├── server-icon.png     # Copied from tracked version during setup
+        │   └── data/
+        │       └── DistantHorizons.sqlite  # DH LOD database
+        ├── server.properties   # Copied from tracked version
+        ├── server-icon.png     # Copied from tracked version
         ├── ops.json            # Operator list
         ├── whitelist.json      # Whitelist (if enabled)
         └── logs/               # Server logs
@@ -140,25 +155,28 @@ Point an A record for `minecraft.dthasno.website` to your server's public IP. Ca
 git clone <repo-url> minecraft-stack
 cd minecraft-stack
 
+# Create .env with an RCON password (required for scripts)
+echo "RCON_PASSWORD=*** rand -base64 18)" > .env
+
 # Start everything
 docker compose up -d
 ```
 
 ### What happens on first boot
 
-The `minecraft-setup` container starts and runs `setup.sh`, which takes **3–5 minutes**:
+The `minecraft-setup` container starts and runs `setup.sh`, which takes **3-5 minutes**:
 
 1. Installs `wget` and `unzip` in the container.
 2. Downloads the ~240 MB server pack zip from CurseForge's CDN.
 3. Extracts it and finds the NeoForge installer directory.
 4. Cleans `/data` of any leftover files.
-5. Copies all server files (mods, config, installer jar) into `/data`.
-6. Runs `java -jar neoforge-*-installer.jar --installServer` — this downloads the NeoForge runtime and generates `run.sh`.
-7. Overwrites `server.properties` and `server-icon.png` with the tracked versions.
+5. Copies all server files (mods, config, installer jar) into `/data/`.
+6. Runs `java -jar neoforge-*-installer.jar --installServer` — generates `run.sh`.
+7. Overwrites `server.properties` and `server-icon.png` with tracked versions.
 8. Reads `extra-mods.txt` and downloads each listed mod jar into `/data/mods/`.
 9. Sets ownership to `1000:1000` (the itzg image's default user).
 
-> **Note:** Steps 1–7 only run on first boot (when `/data/run.sh` doesn't exist). Steps 8–9 run on **every** boot so extra-mods updates take effect with a simple `compose down → up`. See [Boot Sequence](#boot-sequence) for details.
+> Steps 1-7 only run on first boot (when `/data/run.sh` doesn't exist). Steps 8-9 run on **every** boot so extra-mods updates take effect with a simple `compose down -> up`. See [Boot Sequence](#boot-sequence).
 
 The `minecraft` container waits for setup to complete, then starts the server.
 
@@ -180,12 +198,10 @@ You'll know the server is ready when you see:
 
 ### Subsequent boots
 
-The setup script runs in two phases:
+1. **NeoForge install** (skipped) — `/data/run.sh` already exists. World and server files untouched.
+2. **Extra mods** (always runs) — reads `extra-mods.txt`, removes stale jars via manifest, re-downloads all listed mods. URL changes take effect with `compose down -> git pull -> up` — no wipe needed.
 
-1. **NeoForge install** (skipped) — `/data/run.sh` already exists, so the pack download, extraction, and installer are skipped. The world and server files are untouched.
-2. **Extra mods** (always runs) — reads `extra-mods.txt`, removes previously-installed extra jars via a manifest, and re-downloads all listed mods. This means URL changes or version bumps in `extra-mods.txt` take effect with a simple `compose down → git pull → up` — no wipe needed.
-
-The setup container finishes in seconds (just the mod downloads), then the server starts.
+Setup finishes in seconds (just the mod downloads), then the server starts.
 
 ---
 
@@ -234,14 +250,7 @@ docker compose up -d
 
 ### Idempotency
 
-The setup script has two phases:
-
-- **Phase 1 (NeoForge install):** Guarded by `/data/run.sh`. Only runs on a fresh setup (no existing server).
-- **Phase 2 (Extra mods):** Always runs. Re-downloads mods from `extra-mods.txt` and uses a manifest (`/data/.extra-mods-manifest.txt`) to remove stale jars before writing new ones.
-
-This means:
-
-- **`docker compose restart`** — setup container does not re-run (containers aren't recreated). Server restarts with existing mods.
+- **`docker compose restart`** — setup container does not re-run. Server restarts with existing mods.
 - **`docker compose down && up`** — Phase 1 skipped (data persists), Phase 2 re-runs extra-mods. Updated URLs in `extra-mods.txt` take effect.
 - **`rm -rf minecraft/data/* && docker compose up`** — full rebuild from scratch (both phases).
 
@@ -253,7 +262,7 @@ rm -rf minecraft/data/*
 docker compose up -d
 ```
 
-> ⚠️ This deletes the world. See [Backups](#backups) if you want to preserve it.
+> ⚠️ This deletes the world. See [Backups & Restore](#backups--restore) if you want to preserve it.
 
 ---
 
@@ -267,7 +276,7 @@ The tracked `minecraft/server.properties` is copied into `/data/` during setup, 
 
 1. Edit `minecraft/server.properties` in the repo.
 2. Commit and push.
-3. Either wipe + redeploy (applies on next setup run), or apply live:
+3. Either wipe + redeploy, or apply live:
 
 ```bash
 cp minecraft/server.properties minecraft/data/server.properties
@@ -278,27 +287,21 @@ docker compose restart minecraft
 
 | Property | Current Value | Notes |
 |---|---|---|
-| `motd` | `§5§lDean's Modded Minecraft §r§d— All the Forge v11.2.1hf` | Uses Minecraft color codes. `§5` = purple, `§l` = bold, `§r` = reset, `§d` = magenta |
+| `motd` | `§5§lDean's Modded Minecraft §r§d— All the Forge v11.2.1hf` | Uses Minecraft color codes |
 | `difficulty` | `hard` | Options: `peaceful`, `easy`, `normal`, `hard` |
 | `gamemode` | `survival` | Options: `survival`, `creative`, `adventure`, `spectator` |
 | `max-players` | `20` | Max concurrent players |
 | `view-distance` | `12` | Chunk radius sent to clients. Lower to 8 if lagging |
 | `simulation-distance` | `8` | Chunk radius for entity/tick simulation. Lower to 6 if lagging |
-| `online-mode` | `true` | Validates player against Mojang session servers. Set to `false` for cracked clients (not recommended) |
-| `allow-flight` | `true` | Required for many mods that use flight |
-| `allow-nether` | `true` | |
-| `enable-command-block` | `false` | Set to `true` if using command blocks |
-| `enforce-whitelist` | `false` | Set to `true` to require whitelisting |
-| `enable-rcon` | `true` | RCON enabled. Port 25575 not exposed externally — use `docker compose exec minecraft rcon-cli` |
+| `online-mode` | `true` | Validates player against Mojang session servers |
+| `enable-rcon` | `true` | RCON enabled. Port 25575 not exposed — use `docker compose exec` |
 | `enable-query` | `true` | Allows server listing tools to query the server |
-| `pvp` | `true` | |
-| `spawn-protection` | `16` | Blocks within this radius of spawn can't be modified by non-ops |
-| `level-name` | `world` | The world folder name |
-| `level-type` | `default` | Use `flat` for superflat, `largeBiomes` for amplified biomes |
+| `enforce-whitelist` | `false` | Set to `true` to require whitelisting |
+| `snooper-enabled` | `true` | Sends hardware/server stats to Mojang. Set to `false` for privacy |
 
 ### server-icon.png
 
-The icon shown next to the server in the multiplayer server list. Must be a **64×64 pixel PNG**. Replace `minecraft/server-icon.png` with your own image.
+The icon shown next to the server in the multiplayer server list. Must be a **64x64 pixel PNG**. Replace `minecraft/server-icon.png` with your own image.
 
 Applied during setup, or apply live:
 
@@ -318,26 +321,19 @@ USE_AIKAR_FLAGS: "TRUE"
 
 **Aikar's flags** are the community-standard JVM tuning for Minecraft servers, optimized for GC pause times and throughput. The `MEMORY` variable sets both the initial (`-Xms`) and max (`-Xmx`) heap size.
 
-To adjust, edit `docker-compose.yml` and restart:
-
-```bash
-docker compose down
-docker compose up -d
-```
+The container also has a memory limit of 20 GB (`mem_limit: 20g`) to prevent the JVM's off-heap allocations (metaspace, direct buffers, NeoForge class data) from OOMing the host.
 
 **Recommended memory by player count:**
 
 | Players | RAM | Notes |
 |---|---|---|
-| 1–5 | 8 GB | Fine for small groups |
-| 5–15 | 12–16 GB | Current setting |
-| 15–30 | 16–24 GB | May need a beefier host |
+| 1-5 | 8 GB | Fine for small groups |
+| 5-15 | 12-16 GB | Current setting |
+| 15-30 | 16-24 GB | May need a beefier host |
 
 > ⚠️ Don't allocate more than ~75% of host RAM to the JVM — the OS, Docker, and Caddy need memory too. On a 24 GB host, 16 GB is the sweet spot.
 
 ### Environment Variables
-
-All environment variables for the `minecraft` service:
 
 | Variable | Value | Purpose |
 |---|---|---|
@@ -346,6 +342,7 @@ All environment variables for the `minecraft` service:
 | `CUSTOM_SERVER` | `/data/run.sh` | The script to execute to start the server |
 | `MEMORY` | `16G` | JVM heap size (sets both -Xms and -Xmx) |
 | `USE_AIKAR_FLAGS` | `TRUE` | Enables Aikar's optimized GC flags |
+| `RCON_PASSWORD` | (from `.env`) | RCON authentication password |
 
 ---
 
@@ -371,9 +368,8 @@ https://cdn.modrinth.com/data/.../mod-name.jar
 | **Lithium** | 0.15.3 | Optimizes game physics, mob AI, block tick scheduling |
 | **FerriteCore** | 7.0.3 | Reduces memory usage by optimizing object storage |
 | **ModernFix** | 5.26.1 | Improves load times, fixes performance bugs |
-| **AI Improvements** | 0.5.3 | Optimizes entity AI pathfinding and ticking |
-| **Spark** | 1.10.124 | In-game performance profiler (`/spark health`, `/spark profiler`) |
-| **Distant Horizons** | 3.1.2-b | Server-side LOD generation + streaming to DH clients. Enables distant terrain rendering beyond vanilla view distance. See [Distant Horizons](#distant-horizons) below. |
+| **Spark** | 1.10.124 | In-game performance profiler. Use `/spark health` and `/spark profiler` **in-game only** — does not work via RCON |
+| **Distant Horizons** | 3.1.2-b | Server-side LOD generation + streaming to DH clients |
 
 ### Adding a new mod
 
@@ -382,11 +378,15 @@ https://cdn.modrinth.com/data/.../mod-name.jar
 3. Copy the direct download URL (right-click the download button → copy link).
 4. Add it to `minecraft/extra-mods.txt`.
 5. Commit and push.
-6. Apply: `docker compose down && docker compose up -d` (no wipe needed — extra-mods re-sync on every boot).
+6. Apply: `docker compose down && docker compose up -d` (no wipe needed).
+
+### Removing a mod
+
+1. Delete the line from `minecraft/extra-mods.txt`.
+2. Commit and push.
+3. `docker compose down && docker compose up -d` — the manifest system removes the stale jar automatically.
 
 ### Installing on a running server (no restart needed)
-
-If you want the mod live immediately without taking the server down:
 
 ```bash
 docker compose exec minecraft wget -O /data/mods/ModName.jar "https://cdn.modrinth.com/.../ModName.jar"
@@ -394,50 +394,6 @@ docker compose restart minecraft
 ```
 
 Then add the URL to `extra-mods.txt` so it's tracked for future boots.
-
-### Removing a mod
-
-1. Delete the line from `minecraft/extra-mods.txt`.
-2. Commit and push.
-3. `docker compose down && docker compose up -d` — the manifest system removes the stale jar automatically on next boot.
-
-To remove immediately without taking the server down:
-
-```bash
-rm minecraft/data/mods/ModName.jar
-docker compose restart minecraft
-```
-
-### Distant Horizons
-
-[Distant Horizons](https://modrinth.com/mod/distanthorizons) (DH) renders simplified terrain beyond Minecraft's vanilla view distance. The server-side jar generates LOD (Level of Detail) data and streams it to clients running the DH mod, so players see distant terrain without the server sending full chunk data.
-
-**Setup is a two-step process after first boot:**
-
-1. **Pre-generate chunks with Chunky** (writes vanilla chunk data to disk):
-
-   ```
-   chunky radius 2500
-   chunky start
-   ```
-
-   Wait for completion (`chunky progress`). This is the single most impactful performance fix — see [Chunk Pre-Generation](#chunk-pre-generation).
-
-2. **Pre-generate LODs with DH** (reads those chunks and builds LOD geometry):
-
-   ```
-   dh pregen start minecraft:overworld 0 0 2500
-   ```
-
-   Match the radius to your Chunky radius. When done:
-
-   ```
-   dh pregen stop
-   ```
-
-**After that, it's mostly automatic.** DH reactively generates LODs for new chunks as players explore (controlled by `enableDistantGeneration = true` in `DistantHorizons.toml`). The pregen is a one-time primer for the distant vista; you only need to rerun it after a world wipe or if you expand the pregen radius.
-
-> ⚠️ The DH LOD database lives in `minecraft/data/` and survives restarts but **not** a wipe. Back it up alongside the world if you want to avoid re-running pregen after a rebuild.
 
 ---
 
@@ -464,32 +420,33 @@ stop
 
 ### RCON
 
-RCON is **enabled by default** in this stack. The RCON port (25575) is not exposed to the host or the public internet — it's only accessible from inside the container. This means you use it via `docker compose exec` from the host (typically over SSH):
+RCON is **enabled** in this stack. The RCON port (25575) is not exposed to the host or the public internet — it's only accessible from inside the container. Use it via `docker compose exec` from the host (typically over SSH):
 
 ```bash
-# One-off command
-docker compose exec minecraft rcon-cli "list"
-docker compose exec minecraft rcon-cli "chunky start"
-docker compose exec minecraft rcon-cli "dh pregen start minecraft:overworld 0 0 2500"
+# One-off command (always use -T and < /dev/null in scripts)
+docker compose exec -T minecraft rcon-cli "list" < /dev/null
+docker compose exec -T minecraft rcon-cli "chunky start" < /dev/null
 
 # Interactive prompt (with command history)
 docker compose exec minecraft rcon-cli
 ```
 
-The password is stored in a `.env` file (gitignored) and injected via the `RCON_PASSWORD` environment variable in `docker-compose.yml`. The tracked `server.properties` has `rcon.password=` (empty) — the itzg image fills it in from the env var at startup.
+The password is stored in a `.env` file (gitignored) and injected via the `RCON_PASSWORD` environment variable. The tracked `server.properties` has `rcon.password=` (empty) — the itzg image fills it in from the env var at startup.
 
 **Setup:**
 
 ```bash
 # Create .env (not tracked by git)
-echo 'RCON_PASSWORD=your_secure_password' > .env
+echo "RCON_PASSWORD=*** rand -base64 18)" > .env
 ```
 
-Port 25575 is deliberately not mapped in `docker-compose.yml` — RCON is plaintext TCP with no TLS, so it stays container-internal. To change the password, edit `.env` and restart:
+Port 25575 is deliberately not mapped — RCON is plaintext TCP with no TLS, so it stays container-internal. To change the password, edit `.env` and restart:
 
 ```bash
 docker compose down && docker compose up -d
 ```
+
+> ⚠️ RCON commands that send chat messages (like `spark health`) won't return the result via RCON — the output goes to the in-game chat channel. Only commands that write to stdout (like `list`, `chunky`, `dh pregen`) return useful data via RCON.
 
 ### Safe Shutdown
 
@@ -505,7 +462,7 @@ docker compose exec minecraft mc-send-to-console "stop"
 docker compose stop minecraft
 ```
 
-Always use `stop` when possible — it saves the world cleanly. `docker compose stop` sends SIGTERM which the server handles, but `stop` is more explicit.
+Always use `stop` when possible — it saves the world cleanly.
 
 ### Ops & Whitelist
 
@@ -527,9 +484,9 @@ Or edit `minecraft/data/ops.json` directly and restart.
    ```
 2. Apply and restart.
 3. Add players:
-   ```
-   whitelist add PlayerName
-   whitelist reload
+   ```bash
+   docker compose exec -T minecraft rcon-cli "whitelist add PlayerName" < /dev/null
+   docker compose exec -T minecraft rcon-cli "whitelist reload" < /dev/null
    ```
 
 The `ops.json` and `whitelist.json` files persist in `minecraft/data/` across restarts (but not across wipes — back them up if needed).
@@ -542,40 +499,54 @@ The `ops.json` and `whitelist.json` files persist in `minecraft/data/` across re
 
 **This is the single most impactful performance fix for modded servers.** When a player explores into ungenerated territory, the server must generate new chunks in real-time, which causes lag spikes and rubberbanding. Pre-generating the world eliminates this entirely.
 
-After the server is running:
+Use the pregen script to run Chunky + Distant Horizons pregen in sequence:
 
 ```bash
-docker attach minecraft-server
+# Spawn-centered pregen (uses world spawn as center)
+./scripts/pregen.sh 2500
+
+# Explicit center
+./scripts/pregen.sh 2500 100000 0
 ```
 
-Then run Chunky commands:
+Or run Chunky manually via RCON:
 
-```
-# Set a world border (optional, prevents players exploring beyond pre-gen)
-worldborder set 5000
+```bash
+# Set a world border (optional)
+docker compose exec -T minecraft rcon-cli "worldborder set 5000" < /dev/null
 
 # Generate chunks within a 2500-block radius of spawn
-chunky radius 2500
-
-# Start generation (runs in background)
-chunky start
+docker compose exec -T minecraft rcon-cli "chunky radius 2500" < /dev/null
+docker compose exec -T minecraft rcon-cli "chunky start" < /dev/null
 
 # Check progress
-chunky progress
-
-# Pause if needed (server load too high)
-chunky pause
-
-# Resume
-chunky continue
+docker compose exec -T minecraft rcon-cli "chunky progress" < /dev/null
 ```
 
-**How long does it take?** A 2500-block radius is ~78 million blocks (196 million chunks). On a modded server with a 16 GB heap, expect **2–8 hours** depending on your CPU. The server remains fully playable during generation, though you may notice slight lag while it runs.
+**How long does it take?** A 2500-block radius is ~78 million blocks (196 million chunks). Expect **2-8 hours** depending on your CPU. The server remains fully playable during generation.
 
 **Tips:**
 - Run pre-gen during off-hours or while no players are online.
 - Start with a smaller radius (1000) if you want players on sooner.
-- Once complete, players exploring within the pre-generated area will experience zero chunk-generation lag.
+- Once complete, players exploring within the pre-generated area experience zero chunk-generation lag.
+
+### Distant Horizons
+
+[Distant Horizons](https://modrinth.com/mod/distanthorizons) (DH) renders simplified terrain beyond Minecraft's vanilla view distance. The server-side jar generates LOD (Level of Detail) data and streams it to clients running the DH mod.
+
+DH pre-generation requires Chunky to run first — Chunky writes the vanilla chunks, then DH reads those to build LOD geometry. The pregen script handles this sequencing automatically.
+
+**Manual DH pregen:**
+
+```bash
+docker compose exec -T minecraft rcon-cli "dh pregen start minecraft:overworld 0 0 2500" < /dev/null
+docker compose exec -T minecraft rcon-cli "dh pregen status" < /dev/null
+docker compose exec -T minecraft rcon-cli "dh pregen stop" < /dev/null
+```
+
+**After that, it's mostly automatic.** DH reactively generates LODs for new chunks as players explore. The pregen is a one-time primer; you only need to rerun it after a world wipe or if you expand the pregen radius.
+
+> ⚠️ The DH LOD database lives in `minecraft/data/world/data/DistantHorizons.sqlite` and survives restarts but **not** a wipe. Back it up alongside the world if you want to avoid re-running pregen after a rebuild.
 
 ### View & Simulation Distance
 
@@ -595,31 +566,34 @@ Going from 12 to 8 reduces loaded chunks from **625 to 289** — a 54% reduction
 
 ### Included Performance Mods
 
-Several optimization mods are installed via `extra-mods.txt`:
-
 | Mod | What it does | In-game commands |
 |---|---|---|
-| **Lithium** | Rewrites game physics, mob AI, and block tick scheduling to be more efficient. No config needed. | None — passive |
-| **FerriteCore** | Reduces memory usage by optimizing how blocks, items, and entities are stored in RAM. | None — passive |
-| **ModernFix** | Speeds up server startup and fixes several performance bugs in vanilla code paths. | `/modernfix` |
-| **AI Improvements** | Optimizes entity AI: reduces unnecessary pathfinding, limits tick frequency for distant mobs. | Config file in `config/` |
-| **Spark** | Real-time profiler. Use to identify what's causing lag. | `/spark health` (quick report), `/spark profiler` (detailed profiling) -- use in-game only, not via RCON |
+| **Lithium** | Rewrites game physics, mob AI, and block tick scheduling. No config needed. | None — passive |
+| **FerriteCore** | Reduces memory usage by optimizing object storage. | None — passive |
+| **ModernFix** | Speeds up server startup and fixes performance bugs. | `/modernfix` |
+| **Spark** | Real-time profiler. | `/spark health`, `/spark profiler` — **in-game only** |
 
-**Using Spark to diagnose lag:**
+**Using Spark to diagnose lag (in-game only):**
+
+Type in the in-game chat:
 
 ```
-# In-game or console:
 spark health
-# Shows memory, GC, Health, and mspt (milliseconds per tick)
-
-spark profiler --thread server
-# Runs a CPU profiler for 60 seconds, then gives you a web link
-# with a flame graph showing exactly what's consuming CPU
 ```
+
+Shows memory, GC, TPS, and MSPT. If MSPT is high, run:
+
+```
+spark profiler --thread server
+```
+
+Runs a CPU profiler for 60 seconds, then gives you a web link with a flame graph.
+
+> ⚠️ Spark health does not work via RCON. The report goes to the command sender's chat channel, which RCON cannot capture. Use it in-game only.
 
 ---
 
-## Backups
+## Backups & Restore
 
 ### World backup (hot, no server stop)
 
@@ -627,7 +601,9 @@ spark profiler --thread server
 ./scripts/backup.sh
 ```
 
-Sends `save-all` via RCON to flush chunks to disk, then tars `minecraft/data/world/` (and the DH LOD database if present) to `backups/world-backup-YYYYMMDD-HHMMSS.tar.gz`. The server stays running the whole time.
+Sends `save-all` via RCON to flush chunks to disk, then `save-off` to pause auto-saving during the tar, then tars `minecraft/data/world/` (including the DH LOD database) to `backups/world-backup-YYYYMMDD-HHMMSS.tar.gz`. After the tar completes, `save-on` resumes auto-saving. The server stays running the whole time.
+
+The `save-off` / `save-on` bracket prevents "file changed as we read it" warnings — the world files are frozen for the ~60 seconds the tar takes. Players can still move and interact (changes stay in memory and are saved on the next auto-save tick after `save-on`).
 
 ### Full data backup (server stopped)
 
@@ -647,11 +623,15 @@ Stops the server, tars the entire `minecraft/data/` directory (world, mods, conf
 ### Automated nightly backups (cron)
 
 ```bash
-# Edit crontab
 crontab -e
+```
 
+```cron
 # Nightly world backup at 4am, keep last 7
-0 4 * * * /path/to/minecraft-stack/scripts/backup.sh --keep 7 >> /path/to/minecraft-stack/backups/cron.log 2>&1
+0 4 * * * /path/to/minecraft-stack/scripts/backup.sh --keep 7 >> /path/to/minecraft-stack/logs/cron.log 2>&1
+
+# Weekly full backup Sunday 5am, keep last 3
+0 5 * * 0 /path/to/minecraft-stack/scripts/backup.sh --full --keep 3
 ```
 
 ### Restore
@@ -662,6 +642,9 @@ crontab -e
 
 # Full restore (world + mods + config)
 ./scripts/restore.sh backups/full-backup-20250703-040000.tar.gz
+
+# No arguments — lists available backups
+./scripts/restore.sh
 ```
 
 The script:
@@ -672,100 +655,46 @@ The script:
 5. Starts the server.
 6. Waits for "Done!" in the logs.
 
-> ⚠️ **The safety net:** Before overwriting anything, `restore.sh` saves the current world to `backups/pre-restore-safety-YYYYMMDD-HHMMSS.tar.gz`. If the restore goes wrong, you can re-run restore.sh against that safety file.
+> ⚠️ **The safety net:** Before overwriting anything, `restore.sh` saves the current world to `backups/pre-restore-safety-YYYYMMDD-HHMMSS.tar.gz`. If the restore goes wrong, re-run `restore.sh` against that safety file.
 
 > 💡 **Full restore and setup.sh:** When restoring a full backup, `setup.sh` sees `/data/run.sh` already exists and skips the NeoForge install (Phase 1). It still re-syncs extra mods (Phase 2). Your world, mods, and config are preserved from the backup.
 
 ---
 
-## Updating the Modpack
-
-When TeamAMPZ releases a new version of "All the Forge":
-
-1. **Find the new server pack URL.**
-   - Go to [CurseForge files page](https://www.curseforge.com/minecraft/modpacks/all-the-forge/files)
-   - Filter by **"Server Pack"** type
-   - Find the version matching the new release
-   - Right-click the download button → copy link address
-   - It should look like `https://mediafilez.forgecdn.net/files/XXXX/XXX/...zip`
-
-2. **Update `minecraft/setup.sh`** with the new download URL:
-
-   ```bash
-   wget -q -O /tmp/pack.zip "https://mediafilez.forgecdn.net/files/XXXX/XXX/NewPack.zip"
-   ```
-
-3. **Update the MOTD** in `minecraft/server.properties` if the version changed:
-
-   ```properties
-   motd=§5§lDean's Modded Minecraft §r§d— All the Forge vXX.X.X
-   ```
-
-4. **Back up the world** (see [Backups](#backups)).
-
-5. **Wipe and redeploy:**
-
-   ```bash
-   docker compose down
-   rm -rf minecraft/data/*
-   docker compose up -d
-   docker compose logs minecraft-setup -f
-   ```
-
-6. **Restore the world** if you backed it up:
-
-   ```bash
-   # After setup completes but before players join:
-   cp -r world-backup/world minecraft/data/world
-   docker compose restart minecraft
-   ```
-
-7. **Update the landing page** in `site/index.html` with the new version number so players know which version to install.
-
-> ⚠️ Modpack updates may change mod configs, world generation, or block IDs. Always test on a copy of the world before committing.
-
----
-
-## The Landing Page
-
-Caddy serves the static site in `site/` at `https://minecraft.dthasno.website`. This is a player-facing page with step-by-step instructions for:
-
-1. Installing CurseForge (with video tutorial)
-2. Installing the "All the Forge" modpack
-3. Launching the game and joining the server
-
-The Caddyfile is minimal — it just serves static files with gzip compression, security headers, and automatic TLS via Let's Encrypt. No backend, no database.
-
-To update the page, edit `site/index.html` and Caddy will serve it immediately (the volume is mounted read-only, so changes are live on next page load).
-
----
-
 ## Maintenance & Monitoring
 
-### Scheduled routines (cron)
+### How health monitoring works
 
-Set up a crontab on the host for automated maintenance:
+Scripts do **not** use spark health for TPS monitoring. Spark health sends its report to the in-game chat channel, which RCON cannot capture, and polling it via RCON causes server freezes. Instead, scripts count **"Can't keep up" warnings** in docker logs — a proven TPS proxy:
+
+| Warning count (last hour) | Health indicator | Approximate TPS |
+|---|---|---|
+| 0 | `healthy` | ~20 TPS (nominal) |
+| 1-3 | `minor` | 15-19 TPS (spikes) |
+| 4+ | `lagging` | < 15 TPS (significant lag) |
+
+This data is already collected by `error-scan.sh` into `logs/errors.log`.
+
+### Scheduled routines (cron)
 
 ```bash
 crontab -e
 ```
 
-Recommended schedule:
-
 ```cron
 # === Daily ===
 # Nightly world backup at 4am, keep last 7
-0 4 * * * /path/to/minecraft-stack/scripts/backup.sh --keep 7 >> /path/to/backups/cron.log 2>&1
+0 4 * * * /path/to/minecraft-stack/scripts/backup.sh --keep 7 >> /path/to/minecraft-stack/logs/cron.log 2>&1
 
 # Disk space check at 6am
-0 6 * * * /path/to/minecraft-stack/scripts/disk-check.sh >> /path/to/logs/cron.log 2>&1
+0 6 * * * /path/to/minecraft-stack/scripts/disk-check.sh >> /path/to/minecraft-stack/logs/cron.log 2>&1
 
-# Daily Discord status report at 8am
+# Daily Discord status report at 8am (requires DISCORD_WEBHOOK in .env)
 0 8 * * * /path/to/minecraft-stack/scripts/daily-report.sh
 
 # === Hourly ===
-# Health snapshot to log file (Health trend over time)
-0 * * * * /path/to/minecraft-stack/scripts/status.sh --oneline >> /path/to/logs/health.log 2>&1
+# Health snapshot to log file (health trend over time)
+0 * * * * /path/to/minecraft-stack/scripts/status.sh --oneline >> /path/to/minecraft-stack/logs/health.log 2>&1
 
 # Error scan (last hour of logs)
 30 * * * * /path/to/minecraft-stack/scripts/error-scan.sh
@@ -786,7 +715,7 @@ Replace `/path/to/minecraft-stack` with your actual repo path.
 Run these manually in a tmux pane while playing or testing:
 
 ```bash
-# Real-time Health monitor (green/yellow/red, updates every 5s)
+# Real-time health monitor (green/yellow/red, updates every 15s)
 ./scripts/health-watch.sh
 
 # Filtered log watcher (errors/warnings only, no chunk-load spam)
@@ -796,7 +725,7 @@ Run these manually in a tmux pane while playing or testing:
 ### On-demand scripts
 
 ```bash
-# One-shot server health overview (Health, memory, disk, players, logs)
+# One-shot server health overview (health, memory, disk, players, logs)
 ./scripts/status.sh
 
 # Disk space and world size check
@@ -807,24 +736,106 @@ Run these manually in a tmux pane while playing or testing:
 
 # List installed mods, flag duplicates, show tracked vs pack
 ./scripts/mod-audit.sh
+
+# Test all scripts against the live server (staged audit)
+./scripts/test-scripts.sh
 ```
 
 ### Discord notifications
 
-Scripts can push alerts to a Discord channel via webhook. See
-`ignored/discord-hooks.md` for full setup. The short version:
+Scripts can push alerts to a Discord channel via webhook. See `ignored/discord-hooks.md` for full setup. The short version:
 
 1. Create a webhook in your Discord channel settings.
 2. Add `DISCORD_WEBHOOK=https://discord.com/api/webhooks/...` to `.env`.
-3. Scripts that source `scripts/notify.sh` will automatically send
-   alerts for errors, crashes, and failures.
+3. Scripts that source `scripts/notify.sh` will automatically send alerts.
 
-Scripts with Discord hooks built in:
-- `crash-watch.sh` -- red alert on unexpected container restart
-- `error-scan.sh` -- orange alert when new log errors are detected
-- `backup.sh` / `restore.sh` -- green on success, red on failure
-- `pre-flight.sh` -- orange if any check fails
-- `daily-report.sh` -- morning status embed
+Scripts with Discord hooks:
+- `crash-watch.sh` — red alert on unexpected container restart
+- `error-scan.sh` — orange alert when new log errors are detected
+- `backup.sh` / `restore.sh` — green on success, red on failure
+- `pre-flight.sh` — orange if any check fails
+- `daily-report.sh` — morning status embed
+
+---
+
+## Script Reference
+
+All scripts live in `scripts/` and are executable. They source `scripts/common.sh` for shared functions and `scripts/notify.sh` for Discord integration.
+
+| Script | Purpose | Cron? | Discord? |
+|---|---|---|---|
+| `backup.sh` | Hot world backup or full data backup with rotation | Yes | Yes |
+| `restore.sh` | Restore world or full data from a backup archive | No | Yes |
+| `status.sh` | One-screen server health overview (or `--oneline` for cron) | Yes | No |
+| `disk-check.sh` | Disk space and world/data size check with thresholds | Yes | No |
+| `health-watch.sh` | Continuous health monitor (green/yellow/red) | No (tmux) | No |
+| `log-watch.sh` | Filtered live log tail (errors/warnings only) | No (tmux) | No |
+| `pre-flight.sh` | Pre-session readiness check (pass/fail summary) | No | Yes |
+| `crash-watch.sh` | Container restart detection and alerting | Yes (5 min) | Yes |
+| `error-scan.sh` | Scan docker logs for errors, alert on new ones | Yes (hourly) | Yes |
+| `daily-report.sh` | Morning Discord embed with server status | Yes (8am) | Yes |
+| `mod-audit.sh` | List installed jars, flag duplicates, tracked vs pack | No | No |
+| `pregen.sh` | Chunky + DH pregen chaining with progress polling | No | No |
+| `notify.sh` | Discord webhook helper (sourced by other scripts) | N/A | N/A |
+| `common.sh` | Shared functions: `get_health()`, `get_health_count()` | N/A | N/A |
+| `test-scripts.sh` | Staged audit of all scripts against the live server | No | No |
+
+---
+
+## Updating the Modpack
+
+When a new version of "All the Forge" is released:
+
+1. **Find the new server pack URL.**
+   - Go to [CurseForge files page](https://www.curseforge.com/minecraft/modpacks/all-the-forge/files)
+   - Filter by **"Server Pack"** type
+   - Find the version matching the new release
+   - Right-click the download button → copy link address
+
+2. **Update `minecraft/setup.sh`** with the new download URL:
+
+   ```bash
+   wget -q -O /tmp/pack.zip "https://mediafilez.forgecdn.net/files/XXXX/XXX/NewPack.zip"
+   ```
+
+3. **Update the MOTD** in `minecraft/server.properties` if the version changed.
+
+4. **Back up the world** (see [Backups & Restore](#backups--restore)).
+
+5. **Wipe and redeploy:**
+
+   ```bash
+   docker compose down
+   rm -rf minecraft/data/*
+   docker compose up -d
+   docker compose logs minecraft-setup -f
+   ```
+
+6. **Restore the world** if you backed it up:
+
+   ```bash
+   # After setup completes but before players join:
+   cp -r world-backup/world minecraft/data/world
+   docker compose restart minecraft
+   ```
+
+7. **Update the landing page** in `site/index.html` with the new version number.
+
+> ⚠️ Modpack updates may change mod configs, world generation, or block IDs. Always test on a copy of the world before committing.
+
+---
+
+## The Landing Page
+
+Caddy serves the static site in `site/` at `https://minecraft.dthasno.website`. This is a player-facing page with step-by-step instructions for:
+
+1. Installing CurseForge (with video tutorial)
+2. Installing the "All the Forge" modpack
+3. Launching the game and joining the server
+
+The Caddyfile is minimal — it just serves static files with gzip compression, security headers (HSTS, CSP), and automatic TLS via Let's Encrypt. No backend, no database.
+
+To update the page, edit `site/index.html` and Caddy will serve it immediately (the volume is mounted read-only, so changes are live on next page load).
 
 ---
 
@@ -842,8 +853,8 @@ Scripts with Discord hooks built in:
 | `moved too quickly!` | Server tick lag causing position desync | Fix the "Can't keep up!" issue (see [Performance Tuning](#performance-tuning)) |
 | Container exits with code 1 | Setup script failed | Check `docker compose logs minecraft-setup` for the error |
 | Container exits with code 2 | Server crashed during startup | Check `docker compose logs minecraft` for the stack trace |
-| `The "XXXX" variable is not set` | `.env` file has unescaped `$` characters | Escape `$$` in `.env` or hardcode values in `docker-compose.yml` |
-| Players can't connect | Firewall or DNS issue | Ensure port `25565` is open; check `minecraft.dthasno.website` resolves to your server IP |
+| RCON command returns empty | Command sends output to chat, not stdout | Use in-game console instead (spark health, tellraw, etc.) |
+| Players can't connect | Firewall or DNS issue | Ensure port `25565` is open; check DNS resolves to your server IP |
 
 ### Useful diagnostic commands
 
@@ -864,21 +875,21 @@ docker compose config
 curl -s http://localhost:25565 | xxd | head -5
 ```
 
-### Spark health check
+### Reading "Can't keep up" warnings
 
-If the server is running slowly, attach to the console and run:
+The server logs "Can't keep up! Is the server overloaded? Running Xms or Y ticks behind" when it can't maintain 20 TPS. This is normal during chunk generation, mod loading, or when many players are online. The health monitoring scripts count these warnings as a TPS proxy:
 
+- **0 warnings in the last hour** — server is healthy
+- **1-3** — minor lag spikes (usually transient)
+- **4+** — significant lag, investigate with `/spark profiler` in-game
+
+To see recent warnings:
+
+```bash
+./scripts/error-scan.sh
+# or
+docker compose logs minecraft --since 1h 2>&1 | grep "Can't keep up"
 ```
-spark health
-```
-
-This shows:
-- **Health** (ticks per second) — should be 20.0; lower means lag
-- **MSPT** (milliseconds per tick) — should be under 50ms
-- **Memory usage** — should stay below 80% of allocated
-- **GC pauses** — should be infrequent and short
-
-If MSPT is high, run `spark profiler` to get a detailed flame graph showing exactly which mod or code path is consuming CPU.
 
 ---
 
@@ -889,8 +900,8 @@ If MSPT is high, run `spark profiler` to get a detailed flame graph showing exac
 | Port | Protocol | Service | Purpose |
 |---|---|---|---|
 | 25565 | TCP | minecraft | Java Edition game traffic |
-| 80 | TCP | caddy | HTTP → redirects to HTHealth |
-| 443 | TCP/UDP | caddy | HTHealth (TLS) + HTTP/3 (QUIC) |
+| 80 | TCP | caddy | HTTP → redirects to HTTPS |
+| 443 | TCP/UDP | caddy | HTTPS (TLS) + HTTP/3 (QUIC) |
 
 ### Firewall configuration
 
@@ -915,4 +926,4 @@ Caddy automatically provisions and renews the TLS certificate via Let's Encrypt.
 
 ### Internal networking
 
-Both `caddy` and `minecraft` are on the `proxy-net` bridge network. The `minecraft-setup` container is not on any network — it doesn't need one since it only downloads from the internet.
+Caddy is on the `proxy-net` bridge network. The `minecraft` container is on the default bridge — it only needs host-port publishing for game traffic (25565). The `minecraft-setup` container is not on any network — it only downloads from the internet during setup.

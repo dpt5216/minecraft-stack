@@ -20,7 +20,7 @@ get_health() {
   local WINDOW="${1:-3600}"
   local COUNT
 
-  COUNT=$(docker compose logs minecraft --since "${WINDOW}s" 2>/dev/null \
+  COUNT=$(docker compose logs minecraft --tail 2000 2>/dev/null \
     | grep -ci "Can't keep up" || true)
 
   if [ -z "$COUNT" ]; then
@@ -42,7 +42,7 @@ get_health_count() {
   local WINDOW="${1:-3600}"
   local COUNT
 
-  COUNT=$(docker compose logs minecraft --since "${WINDOW}s" 2>/dev/null \
+  COUNT=$(docker compose logs minecraft --tail 2000 2>/dev/null \
     | grep -ci "Can't keep up" || true)
 
   echo "${COUNT:-0}"
