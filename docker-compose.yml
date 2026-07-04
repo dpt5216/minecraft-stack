@@ -44,14 +44,14 @@ services:
       EULA: "TRUE"
       TYPE: "CUSTOM"
       CUSTOM_SERVER: "/data/run.sh"
-      MEMORY: "16G"
+      MEMORY: "12G"
       # server.properties is managed manually — edit ./minecraft/data/server.properties
       USE_AIKAR_FLAGS: "TRUE"
       RCON_PASSWORD: ${RCON_PASSWORD}
     tty: true
     stdin_open: true
-    mem_limit: 20g
-    mem_reservation: 16g
+    mem_limit: 16g
+    mem_reservation: 12g
 
 volumes:
   caddy_data:
