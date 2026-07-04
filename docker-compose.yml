@@ -1,7 +1,6 @@
 services:
   # --- Caddy reverse proxy + static file server ---
-  caddy:
-    # Pinned 2026-06-24; update intentionally
+  caddy:                                                                         # Pinned 2026-06-24; update intentionally
     image: caddy:2.11
     container_name: caddy
     restart: unless-stopped
@@ -57,7 +56,8 @@ services:
       RCON_PASSWORD: ${RCON_PASSWORD}
     tty: true
     stdin_open: true
-    mem_limit: 12g
+    # Host has 12GB total. Leave ~3GB for OS + Caddy + setup container overhead.
+    mem_limit: 9g
     mem_reservation: 8g
 
 volumes:
