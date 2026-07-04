@@ -44,14 +44,21 @@ services:
       EULA: "TRUE"
       TYPE: "CUSTOM"
       CUSTOM_SERVER: "/data/run.sh"
-      MEMORY: "12G"
+      MEMORY: "8G"
       # server.properties is managed manually — edit ./minecraft/data/server.properties
       USE_AIKAR_FLAGS: "TRUE"
+      # Spark profile (EfGVMYAccp) showed G1 young-gen pauses averaging 232ms,
+      # overshooting Aikar's 200ms target. Heap only uses ~5GB of 12GB committed.
+      #  - shrink heap to 8G: less to scan per GC
+      #  - tighten pause target to 50ms: more frequent, shorter young GCs
+      # G1HeapRegionSize=8M + ParallelRefProcEnabled already come from Aikar flags;
+      # JVM_XX_OPTS appends after them, so this safely overrides MaxGCPauseMillis.
+      JVM_XX_OPTS: "-XX:MaxGCPauseMillis=50"
       RCON_PASSWORD: ${RCON_PASSWORD}
     tty: true
     stdin_open: true
-    mem_limit: 16g
-    mem_reservation: 12g
+    mem_limit: 12g
+    mem_reservation: 8g
 
 volumes:
   caddy_data:
