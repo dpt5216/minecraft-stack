@@ -13,7 +13,7 @@ services:
       - "443:443/udp"   # HTTP/3 (QUIC)
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./site:/srv/www:ro
+      - ./site:/srv/www:rw
       - caddy_data:/data
       - caddy_config:/config
 
