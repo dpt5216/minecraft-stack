@@ -44,7 +44,6 @@ services:
       TYPE: "CUSTOM"
       CUSTOM_SERVER: "/data/run.sh"
       MEMORY: "8G"
-      # server.properties is managed manually — edit ./minecraft/data/server.properties
       USE_AIKAR_FLAGS: "TRUE"
       # Spark profile (EfGVMYAccp) showed G1 young-gen pauses averaging 232ms,
       # overshooting Aikar's 200ms target. Heap only uses ~5GB of 12GB committed.
