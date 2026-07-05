@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     environment:
       DISCORD_INVITE: ${DISCORD_INVITE}
+    command: sh -c 'sed "s|__DISCORD_INVITE__|$$DISCORD_INVITE|g" /srv/www/index.html > /tmp/index.html && cat /tmp/index.html > /srv/www/index.html && exec caddy run --config /etc/caddy/Caddyfile'
     ports:
       - "80:80"
       - "443:443"
