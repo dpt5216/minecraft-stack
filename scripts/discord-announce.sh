@@ -18,7 +18,7 @@ rcon() {
 }
 # --- Colorized tellraw ---
 # gold prefix + aqua bold link + reset
-TELLRAW='{"text":"","extra":[{"text":"Join our Discord server at ","color":"gold"},{"text":"'"$DISCORD_INVITE"'","color":"aqua","bold":true,"underlined":true}]}'
+TELLRAW='{"text":"","extra":[{"text":"Join our Discord server! ","color":"purple"},{"text":"'"$DISCORD_INVITE"'","color":"aqua","bold":true,"underlined":true}]}'
 echo -e "\033[36mSending Discord announcement...\033[0m"
 rcon "tellraw @a $TELLRAW"
 echo -e "\033[32mDone.\033[0m"
