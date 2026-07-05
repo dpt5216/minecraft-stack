@@ -4,6 +4,8 @@ services:
     image: caddy:2.11
     container_name: caddy
     restart: unless-stopped
+    environment:
+      DISCORD_INVITE: ${DISCORD_INVITE}
     ports:
       - "80:80"
       - "443:443"

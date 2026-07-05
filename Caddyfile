@@ -4,6 +4,7 @@
 
 minecraft.dthasno.website {
     root * /srv/www
+    templates
     file_server
     encode gzip zstd
 
