@@ -40,3 +40,27 @@ get_health_count() {
 
   echo "${COUNT:-0}"
 }
+
+# sanitize_webhook: clean a Discord webhook URL read from .env.
+# Strips surrounding quotes, carriage returns (CRLF), leading/trailing
+# whitespace, and trailing slashes — the common copy-paste / Windows-edit
+# corruptions that make Discord return 404 (trailing slash) or curl fail
+# (trailing CR/space). Echoes the cleaned URL on stdout (may be empty).
+sanitize_webhook() {
+  local url="${1:-}"
+  # strip a single pair of surrounding quotes (if present)
+  case "$url" in
+    \"*\") url="${url#\"}"; url="${url%\"}" ;;
+    \'*\') url="${url#\'}"; url="${url%\'}" ;;
+  esac
+  # drop all CR chars (CRLF line endings in .env)
+  url="${url//$'\r'/}"
+  # trim leading/trailing whitespace (POSIX, no subshell)
+  url="${url#"${url%%[![:space:]]*}"}"
+  url="${url%"${url##*[![:space:]]}"}"
+  # strip trailing slashes
+  while [ -n "$url" ] && [ "${url: -1}" = "/" ]; do
+    url="${url%/}"
+  done
+  printf '%s' "$url"
+}

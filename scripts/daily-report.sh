@@ -18,7 +18,7 @@ if [ -f .env ]; then
   set +a
 fi
 
-WEBHOOK="${DISCORD_WEBHOOK:-}"
+WEBHOOK="$(sanitize_webhook "${DISCORD_WEBHOOK:-}")"
 [ -z "$WEBHOOK" ] && exit 0
 
 rcon() {
@@ -42,7 +42,7 @@ case "$HEALTH" in
   *)        COLOR=7506394  ;;  # grey/blue
 esac
 
-curl -s -X POST "$WEBHOOK" \
+HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$WEBHOOK" \
   -H 'Content-Type: application/json' \
   -d "{
     \"embeds\": [{
@@ -58,4 +58,8 @@ curl -s -X POST "$WEBHOOK" \
       ]
     }],
     \"username\": \"MC Server\"
-  }" > /dev/null 2>&1
+  }")
+case "$HTTP_CODE" in
+  20[04]) ;;  # success (Discord returns 204 No Content)
+  *) echo "daily-report: webhook POST failed (HTTP $HTTP_CODE) for $WEBHOOK" >&2 ;;
+esac

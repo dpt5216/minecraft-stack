@@ -19,7 +19,11 @@ if [ -f .env ]; then
   set +a
 fi
 
-NOTIFY_WEBHOOK="${DISCORD_WEBHOOK:-}"
+# pull in shared helpers (sanitize_webhook)
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+[ -f "$SCRIPT_DIR/common.sh" ] && source "$SCRIPT_DIR/common.sh"
+
+NOTIFY_WEBHOOK="$(sanitize_webhook "${DISCORD_WEBHOOK:-}")"
 
 notify() {
   local msg="$1"
@@ -32,10 +36,14 @@ notify() {
   # Escape double quotes and backslashes in the message
   msg=$(echo "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
-  curl -s -X POST "$NOTIFY_WEBHOOK" \
+  local code
+  code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$NOTIFY_WEBHOOK" \
     -H 'Content-Type: application/json' \
-    -d "{\"embeds\":[{\"title\":\"Minecraft Server\",\"description\":\"$msg\",\"color\":$color}],\"username\":\"MC Server\"}" \
-    > /dev/null 2>&1
+    -d "{\"embeds\":[{\"title\":\"Minecraft Server\",\"description\":\"$msg\",\"color\":$color}],\"username\":\"MC Server\"}")
+  case "$code" in
+    20[04]) ;;
+    *) echo "notify: webhook POST failed (HTTP $code)" >&2 ;;
+  esac
 }
 
 notify_error() { notify "$1" "15548992"; }
