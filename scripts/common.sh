@@ -64,3 +64,18 @@ sanitize_webhook() {
   done
   printf '%s' "$url"
 }
+
+# parse_player_count: extract the online player count from `list` RCON output.
+# Minecraft returns: "There are N of a max of M players online: <names>"
+# Echoes N on stdout; "0" if empty/unparseable. Reads the raw `list` string
+# on stdin or as $1.
+parse_player_count() {
+  local out="${1:-}"
+  [ -z "$out" ] && out=$(cat 2>/dev/null)
+  local n
+  # primary: the number right after "are "
+  n=$(printf '%s' "$out" | grep -oP 'are \K\d+' | head -1)
+  # fallback: first integer anywhere in the string
+  [ -z "$n" ] && n=$(printf '%s' "$out" | grep -oE '[0-9]+' | head -1)
+  printf '%s' "${n:-0}"
+}

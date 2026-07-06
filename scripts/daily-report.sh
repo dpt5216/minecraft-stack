@@ -25,7 +25,7 @@ rcon() {
   timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "$@" < /dev/null 2>/dev/null || echo ""
 }
 
-PLAYERS=$(rcon "list" | grep -oP '\d+/' | tr -d '/' || echo "0")
+PLAYERS=$(parse_player_count "$(rcon "list")")
 HEALTH=$(get_health || echo "unknown")
 HEALTH_COUNT=$(get_health_count || echo "0")
 

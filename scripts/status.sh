@@ -26,7 +26,7 @@ RUNNING=$(docker compose ps minecraft --format '{{.Status}}' 2>/dev/null | head 
 if [ "$ONELINE" = true ]; then
   TS=$(date '+%Y-%m-%d %H:%M:%S')
   if echo "$RUNNING" | grep -qi "Up"; then
-    PLAYERS=$(rcon "list" | grep -oP '\d+/' | tr -d '/' || echo "0")
+    PLAYERS=$(parse_player_count "$(rcon "list")")
     HEALTH=$(get_health || echo "unknown")
     MEM=$(docker stats --no-stream --format '{{.MemUsage}}' minecraft-server 2>/dev/null | cut -d'/' -f1 | tr -d ' ' || echo "?")
     echo "$TS | Health:$HEALTH | Players:$PLAYERS | Mem:$MEM"
