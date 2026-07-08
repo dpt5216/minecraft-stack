@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# restart-warn.sh — broadcast countdown warnings before a scheduled restart
+# planned-restart.sh — broadcast countdown warnings before a scheduled restart
 #
 # Sends three in-game chat warnings at 5 minutes, 1 minute, and 10 seconds
 # before a scheduled server restart. Uses tellraw for colored chat messages.
@@ -9,8 +9,8 @@
 # the server. A separate restart step should follow after the countdown.
 #
 # Usage:
-#   ./scripts/restart-warn.sh              # full countdown (5m, 1m, 10s)
-#   ./scripts/restart-warn.sh --test       # same, but labels messages as TEST
+#   ./scripts/planned-restart.sh              # full countdown (5m, 1m, 10s)
+#   ./scripts/planned-restart.sh --test       # same, but labels messages as TEST
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -29,46 +29,77 @@ rcon() {
 # Check server is running
 RUNNING=$(docker compose ps minecraft --format '{{.Status}}' 2>/dev/null | head -1 || echo "")
 if ! echo "$RUNNING" | grep -qi "Up"; then
-  echo "restart-warn: server not running, nothing to do"
+  echo "planned-restart: server not running, nothing to do"
   exit 0
 fi
 
-# Build a tellraw JSON payload for a colored chat message.
-# Args: $1 = color (e.g. "gold"), $2 = message text
-tellraw_msg() {
-  local color="$1" msg="$2"
-  local prefix=""
+# ─── Colors ─────────────────────────────────────────────────────────────
+BASE_COLOR="gold"       # message text
+TIME_COLOR="aqua"       # time-until-restart (5 minutes, 1 minute, etc.)
+CLOCK_COLOR="yellow"    # actual clock time of restart
+
+# ─── Restart time (5 minutes from now, HH:MM) ───────────────────────────
+RESTART_TIME=$(date -d '+5 minutes' '+%H:%M' 2>/dev/null || date -v+5M '+%H:%M' 2>/dev/null || echo "?")
+
+# ─── Tellraw helper ─────────────────────────────────────────────────────
+# Sends a tellraw @a with multiple colored segments.
+# Args: segment specs as "text|color" pairs, space-separated.
+# Each segment becomes one entry in the "extra" array.
+# [TEST] prefix is auto-prepended in test mode.
+tellraw_send() {
+  local extra=""
+  local seg text color
+
   if [ "$TEST_MODE" = true ]; then
-    prefix='{"text":"[TEST] ","color":"yellow","bold":true},'
+    extra='{"text":"[TEST] ","color":"yellow","bold":true}'
   fi
-  rcon "tellraw @a {\"text\":\"\",\"extra\":[$prefix{\"text\":\"$msg\",\"color\":\"$color\"}]}"
+
+  for seg in "$@"; do
+    text="${seg%%|*}"
+    color="${seg##*|}"
+    local json="{\"text\":\"$text\",\"color\":\"$color\"}"
+    if [ -z "$extra" ]; then
+      extra="$json"
+    else
+      extra="$extra,$json"
+    fi
+  done
+
+  rcon "tellraw @a {\"text\":\"\",\"extra\":[$extra]}"
 }
 
-# echo "restart-warn: starting countdown$( [ "$TEST_MODE" = true ] && echo " (TEST MODE)" )"
+# echo "planned-restart: starting countdown$( [ "$TEST_MODE" = true ] && echo " (TEST MODE)" )"
 
-# ─── 5 minute warning ──────────────────────────────────────────────────
-echo "  5:00 warning..."
-tellraw_msg "gold" "Mock Server restart in 5 minutes. (won't actually restart)"
+# ─── 5 minute warning ───────────────────────────────────────────────────
+echo "  5:00 warning (restart at $RESTART_TIME)..."
+tellraw_send \
+  "Mock Server restart in |$BASE_COLOR" \
+  "5 minutes|$TIME_COLOR" \
+  " at |$BASE_COLOR" \
+  "$RESTART_TIME|$CLOCK_COLOR" \
+  ". (won't actually restart)|$BASE_COLOR"
 sleep 240
 
-# ─── 1 minute warning ──────────────────────────────────────────────────
+# ─── 1 minute warning ───────────────────────────────────────────────────
 echo "  1:00 warning..."
-tellraw_msg "red" "Mock Server restart in 1 minute. (won't actually restart)"
+tellraw_send \
+  "Mock Server restart in |$BASE_COLOR" \
+  "1 minute|$TIME_COLOR" \
+  ". (won't actually restart)|$BASE_COLOR"
 sleep 50
 
-# ─── 10 second warning ─────────────────────────────────────────────────
+# ─── 10 second warning ──────────────────────────────────────────────────
 echo "  0:10 warning..."
-tellraw_msg "red" "Mock Server restart in 10 seconds . (won't actually restart)"
+tellraw_send \
+  "Mock Server restart in |$BASE_COLOR" \
+  "10 seconds|$TIME_COLOR" \
+  ". (won't actually restart)|$BASE_COLOR"
 sleep 5
 
-tellraw_msg "red" "5"
-sleep 1
-tellraw_msg "red" "4"
-sleep 1
-tellraw_msg "red" "3"
-sleep 1
-tellraw_msg "red" "2"
-sleep 1
-tellraw_msg "red" "1"
-sleep 1
+# ─── Final countdown (5..1) ─────────────────────────────────────────────
+for n in 5 4 3 2 1; do
+  tellraw_send "$n|$TIME_COLOR"
+  sleep 1
+done
+
 echo "If this weren't a test it would restart now."
