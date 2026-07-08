@@ -1,26 +1,28 @@
 #!/bin/bash
 #
-# planned-restart.sh — broadcast countdown warnings before a scheduled restart
+# planned-restart.sh — countdown warnings, graceful stop, host reboot
 #
-# Sends three in-game chat warnings at 5 minutes, 1 minute, and 10 seconds
-# before a scheduled server restart. Uses tellraw for colored chat messages.
+# Sends three in-game chat warnings (5m, 1m, 10s) before a scheduled
+# restart. After the countdown:
+#   1. RCON "save-all"  — flush all chunks to disk
+#   2. RCON "stop"      — graceful Minecraft shutdown
+#   3. docker wait      — block until the container exits
+#   4. shutdown -r now  — reboot the host
 #
-# This is the logging/announcement component only — it does NOT restart
-# the server. A separate restart step should follow after the countdown.
+# If any RCON command fails, the server is left running and a Discord
+# alert is sent. No fallback to docker compose stop — a failed graceful
+# stop means something is wrong and a human should look at it.
 #
 # Usage:
-#   ./scripts/planned-restart.sh              # full countdown (5m, 1m, 10s)
-#   ./scripts/planned-restart.sh --test       # same, but labels messages as TEST
+#   ./scripts/planned-restart.sh --test       # mock countdown, no stop/reboot
+#   ./scripts/planned-restart.sh              # real countdown + stop + reboot
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 source scripts/common.sh
+source scripts/notify.sh
 
-TEST_MODE=false
-if [ "${1:-}" = "--test" ]; then
-  TEST_MODE=true
-fi
 
 rcon() {
   timeout --kill-after=3 10 docker compose exec -T minecraft rcon-cli "$@" < /dev/null 2>/dev/null || echo ""
@@ -49,10 +51,6 @@ tellraw_send() {
   local extra=""
   local seg text color ul json
 
-  if [ "$TEST_MODE" = true ]; then
-    extra='{"text":"[TEST] ","color":"yellow","bold":true}'
-  fi
-
   for seg in "$@"; do
     text="${seg%%|*}"
     local rest="${seg#*|}"
@@ -76,38 +74,32 @@ tellraw_send() {
   rcon "tellraw @a {\"text\":\"\",\"extra\":[$extra]}"
 }
 
-# echo "planned-restart: starting countdown$( [ "$TEST_MODE" = true ] && echo \" (TEST MODE)\" )"
+echo "planned-restart: starting countdown"
 
 # ─── 5 minute warning ───────────────────────────────────────────────────
 echo "  5:00 warning (restart at $RESTART_TIME)..."
 tellraw_send \
-  "Mock |$BASE_COLOR" \
   "Server restart|$BASE_COLOR|u" \
   " in |$BASE_COLOR" \
   "5 minutes|$TIME_COLOR" \
   " at |$BASE_COLOR" \
-  "$RESTART_TIME|$CLOCK_COLOR" \
-  ". (won't actually restart)|$BASE_COLOR"
+  "$RESTART_TIME|$CLOCK_COLOR"
 sleep 240
 
 # ─── 1 minute warning ───────────────────────────────────────────────────
 echo "  1:00 warning..."
 tellraw_send \
-  "Mock |$BASE_COLOR" \
   "Server restart|$BASE_COLOR|u" \
   " in |$BASE_COLOR" \
-  "1 minute|$TIME_COLOR" \
-  ". (won't actually restart)|$BASE_COLOR"
+  "1 minute|$TIME_COLOR"
 sleep 50
 
 # ─── 10 second warning ──────────────────────────────────────────────────
 echo "  0:10 warning..."
 tellraw_send \
-  "Mock |$BASE_COLOR" \
   "Server restart|$BASE_COLOR|u" \
   " in |$BASE_COLOR" \
-  "10 seconds|$TIME_COLOR" \
-  ". (won't actually restart)|$BASE_COLOR"
+  "10 seconds|$TIME_COLOR"
 sleep 5
 
 # ─── Final countdown (5..1) ─────────────────────────────────────────────
@@ -116,5 +108,38 @@ for n in 5 4 3 2 1; do
   sleep 1
 done
 
-tellraw_send "Restarting now (not really) |$BASE_COLOR"
-echo "If this weren't a test it would restart now."
+tellraw_send "Restarting now...|$BASE_COLOR"
+
+
+# 1. save-all — flush chunks to disk
+echo "  Saving world (save-all)..."
+SAVE_RESULT=$(rcon "save-all")
+if [ -z "$SAVE_RESULT" ]; then
+  echo "  FAILED: save-all did not respond — aborting restart, server left running"
+  notify_error "Planned restart aborted: RCON save-all failed (no response). Server is still running — investigate before retrying."
+  exit 1
+fi
+sleep 2
+
+# 2. stop — graceful Minecraft shutdown
+echo "  Sending stop..."
+STOP_RESULT=$(rcon "stop")
+if [ -z "$STOP_RESULT" ]; then
+  echo "  FAILED: stop did not respond — aborting restart, server left running"
+  notify_error "Planned restart aborted: RCON stop failed (no response). Server is still running — investigate before retrying."
+  exit 1
+fi
+
+# 3. docker wait — block until the container exits
+echo "  Waiting for container to exit..."
+if ! docker wait minecraft-server; then
+  echo "  FAILED: docker wait returned error — server may still be stopping"
+  notify_error "Planned restart aborted: docker wait failed. Container may be stuck — investigate manually."
+  exit 1
+fi
+echo "  Container exited cleanly"
+
+# 4. Reboot the host
+echo "  Rebooting host..."
+notify_info "Planned restart: server stopped cleanly, rebooting host now."
+shutdown -r now
