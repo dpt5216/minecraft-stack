@@ -246,7 +246,7 @@ echo "$PF_OUTPUT" | grep -qi "backup" && verify "checks backup" "echo '$PF_OUTPU
 run_test "crash-watch.sh runs" "./scripts/crash-watch.sh 2>&1" 15
 verify "crash-watch wrote /tmp/mc-restart-count" "test -f /tmp/mc-restart-count && cat /tmp/mc-restart-count | grep -qE '^[0-9]+$'"
 
-run_test "error-scan.sh scans logs" "./scripts/error-scan.sh 2>&1" 15
+run_test "hourly-scan.sh runs" "./scripts/hourly-scan.sh 2>&1" 15
 run_test "daily-report.sh runs (Discord or no-op)" "./scripts/daily-report.sh 2>&1" 20
 
 emit ""
@@ -307,7 +307,7 @@ run_stage "5" "Cron-Readiness Verification"
 emit ""
 emit "${CYAN}[5] Checking scripts are safe for unattended cron${RESET}"
 
-for script in scripts/disk-check.sh scripts/status.sh scripts/error-scan.sh scripts/crash-watch.sh scripts/daily-report.sh scripts/backup.sh; do
+for script in scripts/disk-check.sh scripts/status.sh scripts/hourly-scan.sh scripts/crash-watch.sh scripts/daily-report.sh scripts/backup.sh; do
   if grep -q 'cd "$(dirname "$0")/.."' "$script" 2>/dev/null; then
     emit "  ${GREEN}  OK${RESET} $(basename "$script") cd's to repo root (cron-safe)"
     PASS=$((PASS + 1))

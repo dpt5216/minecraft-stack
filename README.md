@@ -95,7 +95,7 @@ minecraft-stack/
 │   ├── log-watch.sh            # Filtered live log tail (tmux)
 │   ├── pre-flight.sh           # Pre-session readiness check
 │   ├── crash-watch.sh          # Container restart detection
-│   ├── error-scan.sh           # Scan logs for errors
+│   ├── hourly-scan.sh          # Hourly status + log error recap
 │   ├── daily-report.sh         # Morning Discord status embed
 │   ├── mod-audit.sh            # List installed mods, flag duplicates
 │   ├── pregen.sh               # Chunky + DH pregen chaining
@@ -693,7 +693,7 @@ Scripts do **not** use spark health for TPS monitoring. Spark health sends its r
 | 1-3 | `minor` | 15-19 TPS (spikes) |
 | 4+ | `lagging` | < 15 TPS (significant lag) |
 
-This data is already collected by `error-scan.sh` into `logs/errors.log`.
+This data is already collected by `hourly-scan.sh` into `logs/errors.log`.
 
 ### Scheduled routines (cron)
 
@@ -716,8 +716,8 @@ crontab -e
 # Health snapshot to log file (health trend over time)
 0 * * * * /path/to/minecraft-stack/scripts/status.sh --oneline >> /path/to/minecraft-stack/logs/health.log 2>&1
 
-# Error scan (last hour of logs)
-30 * * * * /path/to/minecraft-stack/scripts/error-scan.sh
+# Hourly status + classified log error recap (always fires)
+0 * * * * /path/to/minecraft-stack/scripts/hourly-scan.sh
 
 # === Every 5 minutes ===
 # Crash detection (container restart monitoring)
@@ -771,7 +771,7 @@ Scripts can push alerts to a Discord channel via webhook. See `ignored/discord-h
 
 Scripts with Discord hooks:
 - `crash-watch.sh` — red alert on unexpected container restart
-- `error-scan.sh` — orange alert when new log errors are detected
+- `hourly-scan.sh` — hourly status embed (players, memory, health, classified log errors)
 - `backup.sh` / `restore.sh` — green on success, red on failure
 - `pre-flight.sh` — orange if any check fails
 - `daily-report.sh` — morning status embed
@@ -792,12 +792,12 @@ All scripts live in `scripts/` and are executable. They source `scripts/common.s
 | `log-watch.sh` | Filtered live log tail (errors/warnings only) | No (tmux) | No |
 | `pre-flight.sh` | Pre-session readiness check (pass/fail summary) | No | Yes |
 | `crash-watch.sh` | Container restart detection and alerting | Yes (5 min) | Yes |
-| `error-scan.sh` | Scan docker logs for errors, alert on new ones | Yes (hourly) | Yes |
+| `hourly-scan.sh` | Hourly status embed: players, memory, health, classified log errors (lag/err/warn) | Yes (hourly) | Yes |
 | `daily-report.sh` | Morning Discord embed with server status | Yes (8am) | Yes |
 | `mod-audit.sh` | List installed jars, flag duplicates, tracked vs pack | No | No |
 | `pregen.sh` | Chunky + DH pregen chaining with progress polling | No | No |
 | `notify.sh` | Discord webhook helper (sourced by other scripts) | N/A | N/A |
-| `common.sh` | Shared functions: `get_health()`, `get_health_count()` | N/A | N/A |
+| `common.sh` | Shared functions: `get_health()`, `get_health_count()`, `strip_ansi()`, `json_escape()`, `parse_player_count()` | N/A | N/A |
 | `test-scripts.sh` | Staged audit of all scripts against the live server | No | No |
 
 ---
@@ -906,7 +906,7 @@ The server logs "Can't keep up! Is the server overloaded? Running Xms or Y ticks
 To see recent warnings:
 
 ```bash
-./scripts/error-scan.sh
+./scripts/hourly-scan.sh
 # or
 docker compose logs minecraft --tail 2000 2>&1 | grep "Can't keep up"
 ```

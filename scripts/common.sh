@@ -65,6 +65,24 @@ sanitize_webhook() {
   printf '%s' "$url"
 }
 
+# strip_ansi: remove ANSI escape codes (color, cursor) from stdin.
+# Docker compose logs can embed color codes depending on TTY detection;
+# these break grep patterns and bracket-splitting in awk.
+# Usage: docker compose logs ... | strip_ansi
+strip_ansi() {
+  sed 's/\x1b\[[0-9;]*[mK]//g'
+}
+
+# json_escape: escape stdin for safe embedding in a JSON string value.
+# Escapes backslashes and double quotes; converts newlines to \n and
+# tabs to \t. Outputs a single line (no trailing newline).
+# Usage: echo "$val" | json_escape
+json_escape() {
+  sed 's/\\/\\\\/g; s/"/\\"/g' | awk '
+    { gsub(/\t/, "\\t"); printf "%s%s", (NR > 1 ? "\\n" : ""), $0 }
+  '
+}
+
 # parse_player_count: extract the online player count from `list` RCON output.
 # Minecraft returns: "There are N of a max of M players online: <names>"
 # Echoes N on stdout; "0" if empty/unparseable. Reads the raw `list` string
