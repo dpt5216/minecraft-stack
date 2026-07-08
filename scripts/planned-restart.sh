@@ -59,6 +59,16 @@ sleep 50
 # ─── 10 second warning ─────────────────────────────────────────────────
 echo "  0:10 warning..."
 tellraw_msg "red" "Mock Server restart in 10 seconds . (won't actually restart)"
-sleep 10
+sleep 5
 
+tellraw_msg "red" "5"
+sleep 1
+tellraw_msg "red" "4"
+sleep 1
+tellraw_msg "red" "3"
+sleep 1
+tellraw_msg "red" "2"
+sleep 1
+tellraw_msg "red" "1"
+sleep 1
 echo "If this weren't a test it would restart now."
