@@ -34,7 +34,7 @@ if ! echo "$RUNNING" | grep -qi "Up"; then
 fi
 
 # ─── Colors ─────────────────────────────────────────────────────────────
-BASE_COLOR="dark_purple"       # message text
+BASE_COLOR="gray"       # message text
 TIME_COLOR="aqua"       # time-until-restart (5 minutes, 1 minute, etc.)
 CLOCK_COLOR="light_purple"    # actual clock time of restart
 
