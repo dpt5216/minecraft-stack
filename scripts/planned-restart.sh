@@ -35,8 +35,8 @@ fi
 
 # ─── Colors ─────────────────────────────────────────────────────────────
 BASE_COLOR="aqua"       # message text
-TIME_COLOR="light_purple"       # time-until-restart (5 minutes, 1 minute, etc.)
-CLOCK_COLOR="light_purple"    # actual clock time of restart
+TIME_COLOR="gold"       # time-until-restart (5 minutes, 1 minute, etc.)
+CLOCK_COLOR="gold"    # actual clock time of restart
 
 # ─── Restart time (5 minutes from now, HH:MM) ───────────────────────────
 RESTART_TIME=$(date -d '+5 minutes' '+%H:%M' 2>/dev/null || date -v+5M '+%H:%M' 2>/dev/null || echo "?")
