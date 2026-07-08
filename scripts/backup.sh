@@ -13,6 +13,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+source scripts/notify.sh
 
 # Colors
 RED='\033[0;31m'
@@ -93,6 +94,10 @@ else
 fi
 
 SIZE=$(du -sh "$ARCHIVE" | cut -f1)
+
+# Discord notification
+BACKUP_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+notify_ok "Backup complete ($MODE): $(basename "$ARCHIVE") — ${SIZE} — ${BACKUP_TIME}"
 echo -e "${GREEN}${BOLD}[backup] ✓ Done: ${ARCHIVE} (${SIZE})${RESET}"
 
 # Rotate old backups if --keep was specified
