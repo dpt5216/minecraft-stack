@@ -102,4 +102,5 @@ for n in 5 4 3 2 1; do
   sleep 1
 done
 
+tellraw_send "Restarting now (not really) |$BASE_COLOR"
 echo "If this weren't a test it would restart now."
