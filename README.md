@@ -97,6 +97,7 @@ minecraft-stack/
 │   ├── crash-watch.sh          # Container restart detection
 │   ├── hourly-scan.sh          # Hourly status + log error recap
 │   ├── daily-report.sh         # Morning Discord status embed
+│   ├── planned-restart.sh      # Countdown warnings, graceful stop, host reboot
 │   ├── mod-audit.sh            # List installed mods, flag duplicates
 │   ├── pregen.sh               # Chunky + DH pregen chaining
 │   ├── notify.sh               # Discord webhook helper
@@ -726,6 +727,11 @@ crontab -e
 # === Weekly ===
 # Full data backup Sunday 5am, keep last 3
 0 5 * * 0 /path/to/minecraft-stack/scripts/backup.sh --full --keep 3
+
+# === Scheduled Restarts ===
+# Planned restart twice daily at 2am and 2pm
+# 5-minute countdown warnings in chat, graceful save-all + stop, then host reboot
+0 2,14 * * * /path/to/minecraft-stack/scripts/planned-restart.sh >> /path/to/minecraft-stack/logs/cron.log 2>&1
 ```
 
 Replace `/path/to/minecraft-stack` with your actual repo path.
@@ -775,6 +781,7 @@ Scripts with Discord hooks:
 - `backup.sh` / `restore.sh` — green on success, red on failure
 - `pre-flight.sh` — orange if any check fails
 - `daily-report.sh` — morning status embed
+- `planned-restart.sh` — green on clean restart, red alert if graceful stop fails (server left running)
 
 ---
 
@@ -794,6 +801,7 @@ All scripts live in `scripts/` and are executable. They source `scripts/common.s
 | `crash-watch.sh` | Container restart detection and alerting | Yes (5 min) | Yes |
 | `hourly-scan.sh` | Hourly status embed: players, memory, health, classified log errors (lag/err/warn) | Yes (hourly) | Yes |
 | `daily-report.sh` | Morning Discord embed with server status | Yes (8am) | Yes |
+| `planned-restart.sh` | Countdown warnings, graceful RCON stop, host reboot | Yes (2am, 2pm) | Yes |
 | `mod-audit.sh` | List installed jars, flag duplicates, tracked vs pack | No | No |
 | `pregen.sh` | Chunky + DH pregen chaining with progress polling | No | No |
 | `notify.sh` | Discord webhook helper (sourced by other scripts) | N/A | N/A |
