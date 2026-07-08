@@ -36,19 +36,18 @@ fi
 # ─── Colors ─────────────────────────────────────────────────────────────
 BASE_COLOR="aqua"       # message text
 TIME_COLOR="gold"       # time-until-restart (5 minutes, 1 minute, etc.)
-CLOCK_COLOR="gold"    # actual clock time of restart
+CLOCK_COLOR="gold"      # actual clock time of restart
 
 # ─── Restart time (5 minutes from now, HH:MM) ───────────────────────────
 RESTART_TIME=$(date -d '+5 minutes' '+%H:%M' 2>/dev/null || date -v+5M '+%H:%M' 2>/dev/null || echo "?")
 
 # ─── Tellraw helper ─────────────────────────────────────────────────────
 # Sends a tellraw @a with multiple colored segments.
-# Args: segment specs as "text|color" pairs, space-separated.
-# Each segment becomes one entry in the "extra" array.
+# Each arg is a segment spec: "text|color" or "text|color|u" (underlined).
 # [TEST] prefix is auto-prepended in test mode.
 tellraw_send() {
   local extra=""
-  local seg text color
+  local seg text color ul json
 
   if [ "$TEST_MODE" = true ]; then
     extra='{"text":"[TEST] ","color":"yellow","bold":true}'
@@ -56,8 +55,17 @@ tellraw_send() {
 
   for seg in "$@"; do
     text="${seg%%|*}"
-    color="${seg##*|}"
-    local json="{\"text\":\"$text\",\"color\":\"$color\"}"
+    local rest="${seg#*|}"
+    color="${rest%%|*}"
+    ul="${rest##*|}"
+    if [ "$ul" = "$color" ]; then
+      ul=""
+    fi
+    if [ "$ul" = "u" ]; then
+      json="{\"text\":\"$text\",\"color\":\"$color\",\"underlined\":true}"
+    else
+      json="{\"text\":\"$text\",\"color\":\"$color\"}"
+    fi
     if [ -z "$extra" ]; then
       extra="$json"
     else
@@ -68,12 +76,14 @@ tellraw_send() {
   rcon "tellraw @a {\"text\":\"\",\"extra\":[$extra]}"
 }
 
-# echo "planned-restart: starting countdown$( [ "$TEST_MODE" = true ] && echo " (TEST MODE)" )"
+# echo "planned-restart: starting countdown$( [ "$TEST_MODE" = true ] && echo \" (TEST MODE)\" )"
 
 # ─── 5 minute warning ───────────────────────────────────────────────────
 echo "  5:00 warning (restart at $RESTART_TIME)..."
 tellraw_send \
-  "Mock Server restart in |$BASE_COLOR" \
+  "Mock |$BASE_COLOR" \
+  "Server restart|$BASE_COLOR|u" \
+  " in |$BASE_COLOR" \
   "5 minutes|$TIME_COLOR" \
   " at |$BASE_COLOR" \
   "$RESTART_TIME|$CLOCK_COLOR" \
@@ -83,7 +93,9 @@ sleep 240
 # ─── 1 minute warning ───────────────────────────────────────────────────
 echo "  1:00 warning..."
 tellraw_send \
-  "Mock Server restart in |$BASE_COLOR" \
+  "Mock |$BASE_COLOR" \
+  "Server restart|$BASE_COLOR|u" \
+  " in |$BASE_COLOR" \
   "1 minute|$TIME_COLOR" \
   ". (won't actually restart)|$BASE_COLOR"
 sleep 50
@@ -91,7 +103,9 @@ sleep 50
 # ─── 10 second warning ──────────────────────────────────────────────────
 echo "  0:10 warning..."
 tellraw_send \
-  "Mock Server restart in |$BASE_COLOR" \
+  "Mock |$BASE_COLOR" \
+  "Server restart|$BASE_COLOR|u" \
+  " in |$BASE_COLOR" \
   "10 seconds|$TIME_COLOR" \
   ". (won't actually restart)|$BASE_COLOR"
 sleep 5
