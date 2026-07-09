@@ -25,7 +25,6 @@ services:
       - ./minecraft/data:/data
       - ./minecraft/server.properties:/tmp/server.properties:ro
       - ./minecraft/server-icon.png:/tmp/server-icon.png:ro
-      - ./minecraft/extra-mods.txt:/tmp/extra-mods.txt:ro
       - ./minecraft/setup.sh:/tmp/setup.sh:ro
     entrypoint: ["/bin/bash", "/tmp/setup.sh"]
 
@@ -46,6 +45,19 @@ services:
       EULA: "TRUE"
       TYPE: "CUSTOM"
       CUSTOM_SERVER: "/data/run.sh"
+      # Needed by MODRINTH_PROJECTS to filter compatible mod versions,
+      # since TYPE=CUSTOM means the image can't infer these from the modloader.
+      VERSION: "1.21.1"
+      MODRINTH_LOADER: "neoforge"
+      # Server-side mods auto-downloaded from Modrinth at boot.
+      # Format: slug or slug:version-type. Stale jars auto-removed.
+      # Disabled mods (tried, didn't keep): lithium, ferritecore,
+      # ai-improvements, alternate-current, clumps
+      MODRINTH_PROJECTS: |
+        chunky
+        modernfix
+        spark
+        distanthorizons:beta
       MEMORY: "8G"
       USE_AIKAR_FLAGS: "TRUE"
       # Spark profile (EfGVMYAccp) showed G1 young-gen pauses averaging 232ms,

@@ -2,9 +2,7 @@
 set -e
 set -o pipefail
 
-MANIFEST="/data/.extra-mods-manifest.txt"
-
-# Tools needed for both the install and the extra-mods download.
+# Tools needed for the install.
 # Always installed (idempotent — apt-get install is a no-op if present).
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq && apt-get install -y -qq wget unzip
@@ -52,35 +50,8 @@ fi
 cp /tmp/server.properties /data/server.properties
 cp /tmp/server-icon.png /data/server-icon.png
 
-# ── Phase 2: Extra server-side mods — always run ─────────────────
-# Re-downloads every boot so URL changes / version bumps in
-# extra-mods.txt take effect with a simple compose down → up.
-# A manifest tracks previously-installed jars so stale versions
-# (different filename) are removed before the new ones land.
-if [ -f /tmp/extra-mods.txt ]; then
-  echo "[setup] Updating extra mods..."
-  mkdir -p /data/mods
-
-  # Remove jars from the previous run
-  if [ -f "$MANIFEST" ]; then
-    while IFS= read -r oldfile; do
-      if [ -n "$oldfile" ] && [ -f "/data/mods/$oldfile" ]; then
-        echo "[setup]   removing stale: $oldfile"
-        rm -f "/data/mods/$oldfile"
-      fi
-    done < "$MANIFEST"
-  fi
-  : > "$MANIFEST"
-
-  grep -v '^#' /tmp/extra-mods.txt | grep -v '^$' | while read -r url; do
-    echo "[setup]   -> $url"
-    filename=$(basename "$url")
-    # decode percent-encoding so %2B -> +, %20 -> space, etc.
-    filename=$(printf '%b' "${filename//%/\\x}")
-    wget -q -O "/data/mods/$filename" "$url"
-    echo "$filename" >> "$MANIFEST"
-  done || true
-fi
+# Extra mods are managed by MODRINTH_PROJECTS in docker-compose.yml.
+# The itzg image auto-downloads and cleans up stale versions at boot.
 
 chown -R 1000:1000 /data
 rm -rf /tmp/pack /tmp/pack.zip
