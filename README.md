@@ -370,6 +370,7 @@ MODRINTH_PROJECTS: |
 | **ModernFix** | `modernfix` | Improves load times, fixes performance bugs |
 | **Spark** | `spark` | In-game performance profiler. Use `/spark health` and `/spark profiler` **in-game only** — does not work via RCON |
 | **Distant Horizons** | `distanthorizons:beta` | Server-side LOD generation + streaming to DH clients |
+| **Simple Voice Chat** | `simple-voice-chat` | Proximity voice chat over UDP 24454. **Requires client-side mod** — players must install it to use voice |
 
 ### Disabled mods (tried, didn't keep)
 
@@ -939,6 +940,7 @@ ufw allow 25565/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw allow 443/udp
+ufw allow 24454/udp   # Simple Voice Chat
 
 # Cloud provider: also check security group / firewall rules in your
 # provider's dashboard (AWS, Hetzner, DigitalOcean, etc.)
